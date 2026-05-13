@@ -39,7 +39,8 @@ def test_session_open_writes_report(repo: SystemRepository):
 
 def test_session_evaluate_accepts_good_patch(repo: SystemRepository):
     cfg = SessionConfig(eval_boards=8, eval_seed=2026,
-                        target_imps_delta=-1000.0)  # accept anything
+                        target_imps_delta=-1000.0,
+                        min_ci_low=-1000.0)  # accept anything
     est = HeuristicEstimator()
     session_dir = open_session(repo, cfg, estimator=est)
     patch = textwrap.dedent("""\

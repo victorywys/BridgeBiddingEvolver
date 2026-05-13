@@ -43,6 +43,11 @@ class BoardResult:
     closed_auction: List[str]
     open_meanings: List[Dict]
     closed_meanings: List[Dict]
+    # Per-call metadata sufficient for downstream analysis (information
+    # theory, replay, rule attribution). Each entry is a dict with keys
+    # ``seat``, ``token``, ``rule_type``, ``rule_name``.
+    open_bids: List[Dict] = field(default_factory=list)
+    closed_bids: List[Dict] = field(default_factory=list)
 
 
 @dataclass
@@ -117,6 +122,12 @@ def run_imp_match(a_factory: Callable[[], Agent],
             closed_auction=[str(c) for c in closed_rec.auction.calls],
             open_meanings=[b.meaning for b in open_rec.bids],
             closed_meanings=[b.meaning for b in closed_rec.bids],
+            open_bids=[{"seat": b.seat, "token": b.token,
+                        "rule_type": b.rule_type, "rule_name": b.rule_name}
+                       for b in open_rec.bids],
+            closed_bids=[{"seat": b.seat, "token": b.token,
+                          "rule_type": b.rule_type, "rule_name": b.rule_name}
+                         for b in closed_rec.bids],
         ))
     n = max(1, len(boards))
     return MatchResult(

@@ -209,6 +209,7 @@ def _cmd_session_open(args: argparse.Namespace) -> int:
         eval_seed=args.seed,
         baseline_path=args.baseline,
         target_imps_delta=args.target_delta,
+        min_ci_low=args.min_ci_low,
         top_failures=args.top_failures,
     )
     session_dir = open_session(repo, cfg, estimator=est)
@@ -313,10 +314,11 @@ def main(argv=None) -> int:
     pso.add_argument("--repo", required=True)
     pso.add_argument("--init-from", dest="init_from", default=None,
                      help="initialize repo from this system path if it doesn't exist")
-    pso.add_argument("--boards", type=int, default=200)
+    pso.add_argument("--boards", type=int, default=500)
     pso.add_argument("--seed", type=int, default=20260101)
     pso.add_argument("--baseline", default="systems/baseline_sayc")
-    pso.add_argument("--target-delta", dest="target_delta", type=float, default=0.05)
+    pso.add_argument("--target-delta", dest="target_delta", type=float, default=0.25)
+    pso.add_argument("--min-ci-low", dest="min_ci_low", type=float, default=0.0)
     pso.add_argument("--top-failures", dest="top_failures", type=int, default=8)
     _add_estimator_flags(pso)
     pso.set_defaults(fn=_cmd_session_open)
