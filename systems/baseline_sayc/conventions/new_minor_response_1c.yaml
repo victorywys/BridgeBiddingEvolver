@@ -1,0 +1,15 @@
+Convention:
+  Name: NewMinorResponse1C
+  Description: Respond 1D over 1C with 6+ HCP and 4+ diamonds, no 4-card major.
+  Priority: 60
+  Trigger:
+    AuctionPattern: ["1C"]
+    Seat: Responder
+  Requirements:
+    HCP: ">=6"
+    Diamonds: ">=4"
+  Meaning:
+    NewSuitForcing: 1
+    PromisesFourCardSuit: D
+  Action:
+    Bid: "1D"

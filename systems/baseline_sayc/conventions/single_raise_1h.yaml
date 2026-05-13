@@ -1,0 +1,15 @@
+Convention:
+  Name: SingleRaise1H
+  Description: Raise 1H to 2H with 6-9 HCP and 3+ hearts.
+  Priority: 75
+  Trigger:
+    AuctionPattern: ["1H"]
+    Seat: Responder
+  Requirements:
+    HCP: "6..9"
+    Hearts: ">=3"
+  Meaning:
+    SimpleRaise: true
+    PromisesThreeCardSupport: true
+  Action:
+    Bid: "2H"

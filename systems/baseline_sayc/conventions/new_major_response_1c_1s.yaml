@@ -1,0 +1,15 @@
+Convention:
+  Name: NewMajorResponse1m_1S
+  Description: Respond 1S over 1C/1D with 6+ HCP and 4+ spades.
+  Priority: 79
+  Trigger:
+    AuctionPattern: ["1C"]
+    Seat: Responder
+  Requirements:
+    HCP: ">=6"
+    Spades: ">=4"
+  Meaning:
+    NewSuitForcing: 1
+    PromisesFourCardSuit: S
+  Action:
+    Bid: "1S"

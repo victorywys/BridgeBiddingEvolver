@@ -1,0 +1,13 @@
+OpeningTable:
+  - OpeningRule:
+      Name: Open1C_Placeholder
+      Description: |
+        Placeholder opening to keep the system non-trivially functional.
+        With any 12+ HCP hand, open 1C. The agent is expected to rewrite
+        or delete this rule during evolution; its purpose is to give the
+        system a baseline rate of opening so diagnoses can start firing.
+      Priority: 1
+      Requirements:
+        HCP: ">=12"
+      Action:
+        Bid: "1C"

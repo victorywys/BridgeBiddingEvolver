@@ -1,0 +1,3 @@
+pyyaml>=6.0
+dataclasses-json>=0.6.1
+endplay>=0.5

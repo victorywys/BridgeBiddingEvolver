@@ -1,0 +1,10 @@
+Name: seed_v0
+Version: v0
+Description: |
+  Minimal bridge bidding system used as the seed for self-evolution. It is
+  intentionally small: only the openings, basic responses, and a couple of
+  conventions (Stayman, Jacoby transfers, take-out double of 1-suit openings).
+  The evolution loop is responsible for filling in gaps.
+Author: bridge_evolve
+ParentSystem: null
+Style: Mini-2/1 (forcing 1NT optional, 15-17 NT)

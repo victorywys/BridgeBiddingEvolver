@@ -1,0 +1,18 @@
+Convention:
+  Name: GameForcingNTResponse
+  Description: Bid 3NT with 13-15 HCP balanced when partner opens 1m.
+  Priority: 65
+  Trigger:
+    AuctionPattern: ["1C"]
+    Seat: Responder
+  Requirements:
+    HCP: "13..15"
+    Balanced: true
+  Meaning:
+    Forcing: 2
+    BalancedGameForce: true
+  Action:
+    Bid: "3NT"
+  Tags:
+    - GameForce
+    - Force
