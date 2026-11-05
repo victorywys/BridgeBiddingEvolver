@@ -1,12 +1,14 @@
 # 经典体系工程移植、真实 DDS 与同牌评测
 
+> 2026-11-05：当前冻结工程参考为v5.5.4，仍有E006复现的未实现出口和不成立的红桃下界，不能作无条件可信基线。近期先按[参考修订验收](14-autoresearch-plan.md#3-r0--p0先修结果边界与固定参考)修复、版本化，再正式比较。后文按日期保留历史交付，原`results/`/`datasets/`/`.runtime/`证据只在本地，不随Git发布。
+
 ## 1. 先明确比较对象
 
 本次版本是以用户提供的CCBA 2.2、精确1.1.1为来源的**可执行工程基线**，不是两份手册全部约定的逐条完整复现。
 
-- [CCBA IR](../systems/classics/ccba.json)与[中文规范](../systems/classics/ccba.md)；
-- [精确 IR](../systems/classics/prec.json)与[中文规范](../systems/classics/prec.md)；
-- [迁移清单](../systems/classics/migration.json)：源文档SHA-256、版本、正文优先规则、明确的评估公式、已移植模块和被压缩/未逐条移植的部分。
+- [CCBA v5.5.4 IR](../systems/classics-v5.5.4-compact/ccba.json)；
+- [精确 v5.5.4 IR](../systems/classics-v5.5.4-compact/prec.json)；
+- [迁移清单](../systems/classics-v5.5.4-compact/migration.json)：源文档SHA-256、版本、正文优先规则、明确的评估公式、已移植模块和被压缩/未逐条移植的部分。对应中文规范用`system render <IR>`同源生成，生成文件不重复纳入Git。
 
 保留了不同开叫结构、不同无将范围与应叫、强梅花、二盖一/反加叫/Jacoby/Bergen/Drury、转移/斯台曼/傀儡、弱二问叫、Gerber、关键张及自然竞争等主要结构。但双路重询/XYZ/第四花色、部分细分牌型接力、Lebensohl/Michaels竞争细项、排除问叫/问Q/侧K/大满贯搜索尚未逐条完整迁移，而按明示自然续叫策略完成。
 
