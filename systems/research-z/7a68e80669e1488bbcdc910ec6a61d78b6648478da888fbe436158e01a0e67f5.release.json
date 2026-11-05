@@ -1,0 +1,3346 @@
+{
+  "hash": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5",
+  "parent": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f",
+  "hypothesis": "在已保留的Z自然竞争闭环上完成继承A草稿：最高限接受的定量邀贯、只限有控制及将Q的高花精确关键张问答与五阶退出；自然与人工分区一致。72项回归全过、8项变化见证、128副新参考真实DDS无错误，探索差+0.390625不是晋级证明。",
+  "tests": {
+    "tests": 72,
+    "passed": 72,
+    "failed": 0,
+    "change_witnesses": 8,
+    "failures": [],
+    "system_hash": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5",
+    "scope": "authored regression tests, not exhaustive protocol proof"
+  },
+  "test_definitions": [
+    {
+      "name": "继承1NT转移至4H",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 4
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "H"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2D"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4H"
+        }
+      ]
+    },
+    {
+      "name": "继承17接受转移邀请",
+      "case_id": "5b218ee6ded60b69",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4H"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "H"
+        }
+      ]
+    },
+    {
+      "name": "继承16拒绝但选红桃",
+      "case_id": "5b338f0291132b18",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "name": "继承无配合接受3NT",
+      "case_id": "b07905dc700b4efc",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2H"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "NT"
+        }
+      ]
+    },
+    {
+      "name": "继承2NT斯台曼双高花",
+      "case_id": "4cf5aad43377532b",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3S"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4S"
+        }
+      ]
+    },
+    {
+      "name": "继承20点转移",
+      "case_id": "57322ac020dd6e4f",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "3S"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4S"
+        }
+      ]
+    },
+    {
+      "name": "继承1NT斯台曼双高花",
+      "case_id": "7904abc9ae8d870f",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3S"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4S"
+        }
+      ]
+    },
+    {
+      "name": "继承18均型跳2NT",
+      "case_id": "fb9f8ba8268ece63",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "1C"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "1S"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        }
+      ]
+    },
+    {
+      "name": "继承轮换高花限制加叫",
+      "case_id": "0ea5940b64b3b992",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/1/call",
+          "op": "eq",
+          "value": "1H"
+        },
+        {
+          "path": "/auction/3/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/auction/5/call",
+          "op": "eq",
+          "value": "4H"
+        }
+      ]
+    },
+    {
+      "name": "继承24点等待再2NT",
+      "case_id": "98c81e25238b53ad",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2D"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        }
+      ]
+    },
+    {
+      "name": "继承另一24点无将局",
+      "case_id": "748ee5cebdbe43e5",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 3
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "NT"
+        }
+      ]
+    },
+    {
+      "name": "继承转移义务消耗",
+      "case_id": "5b338f0291132b18",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "2D",
+        "P",
+        "2H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/public_context/forcing",
+          "op": "eq",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "name": "继承转移被加倍退出",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "2D",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "继承无将被争叫退出",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "2S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承跳级转移不误触",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "3D",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承转移直接4H终止",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "2D",
+        "P",
+        "2H",
+        "P",
+        "4H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "finished"
+        }
+      ]
+    },
+    {
+      "name": "继承强2C被加倍退出",
+      "case_id": "98c81e25238b53ad",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "继承11点不开叫",
+      "case_id": "dd362b2cee36dda7",
+      "mode": "decision",
+      "side": "EW",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/seat",
+          "op": "eq",
+          "value": "E"
+        }
+      ]
+    },
+    {
+      "name": "继承12点开叫",
+      "case_id": "1a9edd76adc7fe18",
+      "mode": "decision",
+      "side": "EW",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "1S"
+        },
+        {
+          "path": "/seat",
+          "op": "eq",
+          "value": "E"
+        }
+      ]
+    },
+    {
+      "name": "继承弱牌停转移",
+      "case_id": "cc16df7eaa8dc9dc",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2D"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 2
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "H"
+        }
+      ]
+    },
+    {
+      "name": "继承弱转移Pass资格",
+      "case_id": "cc16df7eaa8dc9dc",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "2D",
+        "P",
+        "2H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/public_context/forcing",
+          "op": "eq",
+          "value": "none"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "继承强2C等待下一轮",
+      "case_id": "98c81e25238b53ad",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "P",
+        "2D",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "strong_describe"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "继承22均型零点停2NT",
+      "case_id": "a50949cf02e2462a",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "P",
+        "2D",
+        "P",
+        "2NT",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/public_context/forcing",
+          "op": "eq",
+          "value": "none"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "继承强2C一点评价停2S",
+      "case_id": "1c2ff742e0a1ccd4",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2D"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 2
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "name": "继承强2C黑桃成局",
+      "case_id": "6d95a15b20b44c30",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "4S"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "name": "继承强2C草花到3NT",
+      "case_id": "9e17357955b18b87",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "NT"
+        }
+      ]
+    },
+    {
+      "name": "继承25均型直接3NT",
+      "case_id": "9dac3ac0ed75f559",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "2D"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "继承EW斯台曼",
+      "case_id": "86a27a26c8214e61",
+      "mode": "auction",
+      "side": "EW",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "3S"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4S"
+        },
+        {
+          "path": "/contract/declarer",
+          "op": "eq",
+          "value": "W"
+        }
+      ]
+    },
+    {
+      "name": "继承17接受另一高花邀请",
+      "case_id": "f8a2264d0eccf915",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "4S"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "name": "继承16拒绝另一高花邀请",
+      "case_id": "cdb968cadccc0faa",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "3S"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "name": "继承简单加叫后再邀局",
+      "case_id": "b12701e3affadc86",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/1/call",
+          "op": "eq",
+          "value": "1H"
+        },
+        {
+          "path": "/auction/3/call",
+          "op": "eq",
+          "value": "2H"
+        },
+        {
+          "path": "/auction/5/call",
+          "op": "eq",
+          "value": "3H"
+        },
+        {
+          "path": "/auction/7/call",
+          "op": "eq",
+          "value": "4H"
+        }
+      ]
+    },
+    {
+      "name": "继承不重复非法3NT",
+      "case_id": "fb9f8ba8268ece63",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1C",
+        "P",
+        "1S",
+        "P",
+        "3NT",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "继承低花再叫未支持退出",
+      "case_id": "fb9f8ba8268ece63",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1C",
+        "P",
+        "1S",
+        "P",
+        "2C",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承四阶支持终止",
+      "case_id": "fb9f8ba8268ece63",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1C",
+        "P",
+        "1S",
+        "P",
+        "4S",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "finished"
+        }
+      ]
+    },
+    {
+      "name": "继承无干扰二盖一未支持",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1H",
+        "P",
+        "2C",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承强2C正应叫未支持",
+      "case_id": "98c81e25238b53ad",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "P",
+        "2H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承强2C再叫4NT未支持",
+      "case_id": "98c81e25238b53ad",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "P",
+        "2D",
+        "P",
+        "4NT",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承斯台曼3D未支持",
+      "case_id": "7904abc9ae8d870f",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "2C",
+        "P",
+        "2H",
+        "P",
+        "3D",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "继承2NT斯台曼无非法二阶",
+      "case_id": "a50949cf02e2462a",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2NT",
+        "P",
+        "3C",
+        "P",
+        "3H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "3NT"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "stay_rebid"
+        }
+      ]
+    },
+    {
+      "name": "继承成局后再争叫保守退出",
+      "case_id": "052d71eee1a1b87b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "3NT",
+        "4S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "自然诊断122不再消极退出",
+      "case_id": "f30555ef7e245c93",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/5/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/7/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/auction/9/call",
+          "op": "eq",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "自然主动争叫与推进停叫闭环",
+      "case_id": "5e640666fdfcdde2",
+      "mode": "auction",
+      "side": "EW",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/1/call",
+          "op": "eq",
+          "value": "1S"
+        },
+        {
+          "path": "/auction/3/call",
+          "op": "eq",
+          "value": "2S"
+        },
+        {
+          "path": "/auction/5/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "S"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "name": "生成主动一阶争叫",
+      "case_id": "e148892e7c1f592a",
+      "mode": "auction",
+      "side": "EW",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/1/call",
+          "op": "eq",
+          "value": "1S"
+        }
+      ]
+    },
+    {
+      "name": "7点不发8点二阶新花",
+      "case_id": "2f507444da0870a4",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "P",
+        "P",
+        "P",
+        "1D",
+        "1S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "comp_response"
+        }
+      ]
+    },
+    {
+      "name": "8点二阶新花边界",
+      "case_id": "a7cf54b32b464988",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "P",
+        "P",
+        "P",
+        "1D",
+        "1S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "comp_response"
+        }
+      ]
+    },
+    {
+      "name": "竞争新花非逼叫且三张支持",
+      "case_id": "f30555ef7e245c93",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "P",
+        "P",
+        "P",
+        "1D",
+        "1S",
+        "2C",
+        "2S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "comp_rebid"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "竞争新花被加倍仍可支持",
+      "case_id": "f30555ef7e245c93",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "P",
+        "P",
+        "P",
+        "1D",
+        "1S",
+        "2C",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "3C"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "竞争弱推进不被再叫强迫",
+      "case_id": "5e640666fdfcdde2",
+      "mode": "decision",
+      "side": "EW",
+      "prefix": [
+        "1D",
+        "1S",
+        "P",
+        "2S",
+        "3D"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "comp_rebid"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "A自然17加16定量到6NT",
+      "case_id": "015a2acf1b7ce7da",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "6NT"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 6
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "NT"
+        }
+      ]
+    },
+    {
+      "name": "A自然16加16定量停4NT",
+      "case_id": "af3978ff74da155b",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "name": "A自然15加18直接6NT",
+      "case_id": "a44d5b6702f88f01",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "1NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "6NT"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "name": "A16加17最高限定量仍拒绝",
+      "case_id": "cb392defb07e27d5",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "A2NT最高限接受",
+      "case_id": "bf32dae623cfc63a",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "6NT"
+        }
+      ]
+    },
+    {
+      "name": "A2NT低限拒绝",
+      "case_id": "4f58e4340874e7ab",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "A强2C再2NT定量接收",
+      "case_id": "184b434b4b720026",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "2C"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "2NT"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/8/call",
+          "op": "eq",
+          "value": "6NT"
+        }
+      ]
+    },
+    {
+      "name": "A黑桃精确两张答叫进6S",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "5H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "6S"
+        },
+        {
+          "path": "/contract/strain",
+          "op": "eq",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "name": "A黑桃精确一张停5S",
+      "case_id": "000788f114489a9e",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "5D"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "5S"
+        }
+      ]
+    },
+    {
+      "name": "A红桃精确两张答5H后6H",
+      "case_id": "126d1e69d083fd4a",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "changed_from_parent": true,
+      "assertions": [
+        {
+          "path": "/auction/0/call",
+          "op": "eq",
+          "value": "1H"
+        },
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "5H"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "6H"
+        }
+      ]
+    },
+    {
+      "name": "A红桃一张停5H非非法重叫",
+      "case_id": "d715faa54e4cc080",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/4/call",
+          "op": "eq",
+          "value": "5D"
+        },
+        {
+          "path": "/auction/6/call",
+          "op": "eq",
+          "value": "5H"
+        }
+      ]
+    },
+    {
+      "name": "A缺旁门控制不问",
+      "case_id": "dd10660504122677",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4S"
+        },
+        {
+          "path": "/contract/level",
+          "op": "eq",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "name": "A缺将Q不问",
+      "case_id": "9d5c4801c264234e",
+      "mode": "auction",
+      "side": "NS",
+      "prefix": [],
+      "assertions": [
+        {
+          "path": "/auction/2/call",
+          "op": "eq",
+          "value": "4S"
+        }
+      ]
+    },
+    {
+      "name": "A问叫被加倍保持两张编码",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1S",
+        "P",
+        "4NT",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "5H"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "key_answer"
+        },
+        {
+          "path": "/public_context/agreed_trump",
+          "op": "eq",
+          "value": "S"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "A回答被加倍照常6S",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1S",
+        "P",
+        "4NT",
+        "P",
+        "5H",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "6S"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "key_place"
+        }
+      ]
+    },
+    {
+      "name": "A问叫被争叫退出",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1S",
+        "P",
+        "4NT",
+        "5C"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "A回答被争叫退出",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1S",
+        "P",
+        "4NT",
+        "P",
+        "5H",
+        "5S"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "A定量被加倍退出",
+      "case_id": "015a2acf1b7ce7da",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "4NT",
+        "X"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "A关键张回答后再加倍不误完成",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1S",
+        "P",
+        "4NT",
+        "P",
+        "5H",
+        "X",
+        "XX",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "outside"
+        }
+      ]
+    },
+    {
+      "name": "A低花4NT不得接高花关键张",
+      "case_id": "fb9f8ba8268ece63",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1C",
+        "P",
+        "4NT",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "finished"
+        }
+      ]
+    },
+    {
+      "name": "A高花已配合状态保存将牌",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1C",
+        "P",
+        "1S",
+        "P",
+        "2S",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "fit_place"
+        },
+        {
+          "path": "/public_context/agreed_trump",
+          "op": "eq",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "name": "A强2C花色后满贯入口",
+      "case_id": "85f07aee34bbd11d",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "2C",
+        "P",
+        "2D",
+        "P",
+        "2S",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "4NT"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "strong_place"
+        }
+      ]
+    },
+    {
+      "name": "A零关键张编码器",
+      "case_id": "d715faa54e4cc080",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1H",
+        "P",
+        "4NT",
+        "P",
+        "5D",
+        "P",
+        "5H",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "finished"
+        }
+      ]
+    },
+    {
+      "name": "A定量邀请拒绝无持续义务",
+      "case_id": "af3978ff74da155b",
+      "mode": "decision",
+      "side": "NS",
+      "prefix": [
+        "1NT",
+        "P",
+        "4NT",
+        "P"
+      ],
+      "assertions": [
+        {
+          "path": "/call",
+          "op": "eq",
+          "value": "P"
+        },
+        {
+          "path": "/public_context/must_bid",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "path": "/state",
+          "op": "eq",
+          "value": "quant_slam"
+        }
+      ]
+    }
+  ],
+  "cases": {
+    "052d71eee1a1b87b": {
+      "name": "generated-1",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A92.J53.Q85.AKQ7",
+          "E": "Q753.A84.JT97.42",
+          "S": "JT.KQT92.K2.JT96",
+          "W": "K864.76.A643.853"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 2746965367821991,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "N",
+        "vulnerability": "none",
+        "constraints": {
+          "N": {
+            "hcp": [
+              15,
+              17
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              0,
+              7
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              8,
+              10
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              7
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 4,
+        "hand_condition": {
+          "op": "balanced"
+        }
+      }
+    },
+    "5b218ee6ded60b69": {
+      "name": "17点无将+9点红桃转移邀请接受",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A92.J53.K85.AKQ7",
+          "E": "Q753.A84.JT97.42",
+          "S": "JT.KQT92.Q2.JT96",
+          "W": "K864.76.A643.853"
+        }
+      }
+    },
+    "5b338f0291132b18": {
+      "name": "16点无将+8点红桃转移邀请退3H",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A92.J53.Q85.AKQ7",
+          "E": "Q753.A84.JT97.42",
+          "S": "JT.KT962.K2.JT96",
+          "W": "K864.Q7.A643.853"
+        }
+      }
+    },
+    "b07905dc700b4efc": {
+      "name": "generated-4",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A4.AQ4.QJ53.QJ64",
+          "E": "3.KJ852.98.K9532",
+          "S": "KQJT9.763.A74.T8",
+          "W": "87652.T9.KT62.A7"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 2746965367821991,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "N",
+        "vulnerability": "none",
+        "constraints": {
+          "N": {
+            "hcp": [
+              15,
+              17
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              0,
+              7
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              8,
+              10
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              7
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 4,
+        "hand_condition": {
+          "op": "balanced"
+        }
+      }
+    },
+    "4cf5aad43377532b": {
+      "name": "21点2NT双四高花经斯台曼找到黑桃",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AKQ2.AK43.Q85.K7",
+          "E": "765.QJT9.KT9.QJ3",
+          "S": "JT98.65.AJ2.9642",
+          "W": "43.872.7643.AT85"
+        }
+      }
+    },
+    "57322ac020dd6e4f": {
+      "name": "20点2NT转移至黑桃成局",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "AKQ2.AK43.J85.K7",
+          "E": "765.QJT9.KT9.QJ3",
+          "S": "JT983.65.AQ2.964",
+          "W": "4.872.7643.AT852"
+        }
+      }
+    },
+    "7904abc9ae8d870f": {
+      "name": "17点双高花仅黑桃应叫斯台曼邀请",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AKQ2.KJ43.Q85.Q7",
+          "E": "765.QT98.KT9.KJ3",
+          "S": "JT98.65.AJ2.A642",
+          "W": "43.A72.7643.T985"
+        }
+      }
+    },
+    "fb9f8ba8268ece63": {
+      "name": "18点均型自然低花高花再叫2NT",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AK2.KJ3.Q85.AJ74",
+          "E": "Q765.QT98.KT9.32",
+          "S": "JT98.65.AJ2.KQ65",
+          "W": "43.A742.7643.T98"
+        }
+      }
+    },
+    "0ea5940b64b3b992": {
+      "name": "19点五张红桃简单支持直接进局",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "A872.KQJ75.Q.AK9",
+          "E": "J43.T84.AJT832.8",
+          "S": "K965.A62.K.T6432",
+          "W": "QT.93.97654.QJ75"
+        }
+      }
+    },
+    "98c81e25238b53ad": {
+      "name": "generated-1",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQ2.AQ6.AJ74.AQ8",
+          "E": "KT76.KJ85.Q3.JT5",
+          "S": "8.4.K9652.K76432",
+          "W": "J9543.T9732.T8.9"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 8484490256931110,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "N",
+        "vulnerability": "both",
+        "constraints": {
+          "N": {
+            "hcp": [
+              22,
+              24
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 3,
+        "hand_condition": {
+          "op": "balanced"
+        }
+      }
+    },
+    "748ee5cebdbe43e5": {
+      "name": "generated-2",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AKQ.AJ96.AJ4.KQ3",
+          "E": "973.T7542.T.A642",
+          "S": "52.KQ8.8532.J985",
+          "W": "JT864.3.KQ976.T7"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 8484490256931110,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "N",
+        "vulnerability": "both",
+        "constraints": {
+          "N": {
+            "hcp": [
+              22,
+              24
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 3,
+        "hand_condition": {
+          "op": "balanced"
+        }
+      }
+    },
+    "dd362b2cee36dda7": {
+      "name": "generated-1",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "A63.K652.KQ2.872",
+          "E": "KQJT52.Q9.64.K43",
+          "S": "987.AJ84.A3.AQ96",
+          "W": "4.T73.JT9875.JT5"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 5025105014018987,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "E",
+        "vulnerability": "ew",
+        "constraints": {
+          "N": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              11,
+              11
+            ],
+            "S": [
+              5,
+              7
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 2,
+        "hand_condition": {
+          "op": "not",
+          "args": [
+            {
+              "op": "balanced"
+            }
+          ]
+        }
+      }
+    },
+    "1a9edd76adc7fe18": {
+      "name": "generated-1",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "63.A98762.AKT.J4",
+          "E": "AJT9875.Q.J9.A76",
+          "S": "42.KT5.Q853.KQ53",
+          "W": "KQ.J43.7642.T982"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 5640150144638277,
+        "workers": 1,
+        "attempt_limit": 10000,
+        "dealer": "E",
+        "vulnerability": "ew",
+        "constraints": {
+          "N": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              12,
+              12
+            ],
+            "S": [
+              5,
+              7
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 2,
+        "hand_condition": {
+          "op": "not",
+          "args": [
+            {
+              "op": "balanced"
+            }
+          ]
+        }
+      }
+    },
+    "cc16df7eaa8dc9dc": {
+      "name": "弱应叫自然转移后停2H",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A92.J53.Q85.AKQ7",
+          "E": "Q753.AKQ.JT97.42",
+          "S": "JT.T9842.K2.JT96",
+          "W": "K864.76.A643.853"
+        }
+      }
+    },
+    "a50949cf02e2462a": {
+      "name": "22点均型强2C后零点同伴停2NT",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQ97.AK52.93.AKQ",
+          "E": "KT4.83.AK865.J93",
+          "S": "865.976.T742.842",
+          "W": "J32.QJT4.QJ.T765"
+        }
+      }
+    },
+    "1c2ff742e0a1ccd4": {
+      "name": "强2C花色再叫后零点停2S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQ975.AK52.3.AKQ",
+          "E": "KT4.J83.K865.J93",
+          "S": "J86.976.T742.842",
+          "W": "32.QT4.AQJ9.T765"
+        }
+      }
+    },
+    "6d95a15b20b44c30": {
+      "name": "强2C非均型五张黑桃无自然争叫样例",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQ975.AK52.3.AKQ",
+          "E": "KT4.J83.K865.J93",
+          "S": "J86.Q76.JT74.842",
+          "W": "32.T94.AQ92.T765"
+        }
+      }
+    },
+    "9e17357955b18b87": {
+      "name": "强2C非均型五张草花无自然争叫样例",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AKQ.AK52.3.AQ975",
+          "E": "J93.J83.K865.KT4",
+          "S": "842.Q76.JT74.J86",
+          "W": "T765.T94.AQ92.32"
+        }
+      }
+    },
+    "9dac3ac0ed75f559": {
+      "name": "25点均型强2C直接3NT出口",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AKQ.AK96.AJ4.KQ3",
+          "E": "973.T7542.T.A642",
+          "S": "52.QJ8.8532.J985",
+          "W": "JT864.3.KQ976.T7"
+        }
+      }
+    },
+    "86a27a26c8214e61": {
+      "name": "反向座位21点2NT斯台曼闭环",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "43.872.7643.AT85",
+          "E": "AKQ2.AK43.Q85.K7",
+          "S": "765.QJT9.KT9.QJ3",
+          "W": "JT98.65.AJ2.9642"
+        }
+      }
+    },
+    "f8a2264d0eccf915": {
+      "name": "斯台曼双高花9点邀请17点接受",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AKQ2.KJ43.Q85.Q7",
+          "E": "765.QT98.KT9.AJ3",
+          "S": "JT98.65.AJ2.K642",
+          "W": "43.A72.7643.T985"
+        }
+      }
+    },
+    "cdb968cadccc0faa": {
+      "name": "斯台曼双高花9点邀请16点拒绝",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AKQ2.KT43.Q85.Q7",
+          "E": "765.QJ98.KT9.AJ3",
+          "S": "JT98.65.AJ2.K642",
+          "W": "43.A72.7643.T985"
+        }
+      }
+    },
+    "b12701e3affadc86": {
+      "name": "16点五张红桃简单支持后邀请",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "none",
+        "hands": {
+          "N": "A872.KQJ75.Q.A98",
+          "E": "J43.T84.AJT832.K",
+          "S": "K965.A62.9.JT643",
+          "W": "QT.93.K7654.Q752"
+        }
+      }
+    },
+    "f30555ef7e245c93": {
+      "name": "诊断122：低花开叫遭1S干扰后的六张草花",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQJ.6.KQ8762.KJ3",
+          "E": "K8753.QJT3.3.Q65",
+          "S": "6.A875.J4.AT9842",
+          "W": "T942.K942.AT95.7"
+        }
+      }
+    },
+    "5e640666fdfcdde2": {
+      "name": "generated-2",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "KT9.KQJ3.KT863.K",
+          "E": "AQJ86.6.72.AQJ53",
+          "S": "32.T9875.Q4.T986",
+          "W": "754.A42.AJ95.742"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 41022,
+        "workers": 1,
+        "attempt_limit": 200000,
+        "dealer": "N",
+        "vulnerability": "none",
+        "constraints": {
+          "N": {
+            "hcp": [
+              12,
+              15
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              10,
+              14
+            ],
+            "S": [
+              5,
+              7
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 3,
+        "hand_condition": {
+          "op": "ge",
+          "args": [
+            {
+              "op": "honors",
+              "suit": "S",
+              "ranks": "AKQ"
+            },
+            2
+          ]
+        }
+      }
+    },
+    "e148892e7c1f592a": {
+      "name": "generated-3",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "T4.8432.KQ.AK852",
+          "E": "KQ863.AKJ6.T8.63",
+          "S": "A752.5.A97543.Q9",
+          "W": "J9.QT97.J62.JT74"
+        }
+      },
+      "sampling": {
+        "count": 1000,
+        "seed": 41022,
+        "workers": 1,
+        "attempt_limit": 200000,
+        "dealer": "N",
+        "vulnerability": "none",
+        "constraints": {
+          "N": {
+            "hcp": [
+              12,
+              15
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "E": {
+            "hcp": [
+              10,
+              14
+            ],
+            "S": [
+              5,
+              7
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "S": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          },
+          "W": {
+            "hcp": [
+              0,
+              40
+            ],
+            "S": [
+              0,
+              13
+            ],
+            "H": [
+              0,
+              13
+            ],
+            "D": [
+              0,
+              13
+            ],
+            "C": [
+              0,
+              13
+            ]
+          }
+        },
+        "requested_count": 3,
+        "hand_condition": {
+          "op": "ge",
+          "args": [
+            {
+              "op": "honors",
+              "suit": "S",
+              "ranks": "AKQ"
+            },
+            2
+          ]
+        }
+      }
+    },
+    "2f507444da0870a4": {
+      "name": "竞争新花7点不得二阶自由应叫",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQJ.6.KQ8762.KJ3",
+          "E": "K8753.QJT3.3.A65",
+          "S": "6.A875.J4.QT9842",
+          "W": "T942.K942.AT95.7"
+        }
+      }
+    },
+    "a7cf54b32b464988": {
+      "name": "竞争新花8点六张草花边界",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQJ.6.KQ8762.KJ3",
+          "E": "K8753.QJT3.3.Q65",
+          "S": "6.A875.T4.AT9842",
+          "W": "T942.K942.AJ95.7"
+        }
+      }
+    },
+    "015a2acf1b7ce7da": {
+      "name": "定量邀贯17点接受16点应叫",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.QJ3.KJ85.K74",
+          "E": "T987.T98.AQT.JT9",
+          "S": "QJ3.AK4.974.AQ85",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "af3978ff74da155b": {
+      "name": "定量邀贯16点拒绝16点应叫",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.QJ3.KT85.K74",
+          "E": "T987.T98.AQJ.JT9",
+          "S": "QJ3.AK4.974.AQ85",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "a44d5b6702f88f01": {
+      "name": "定量直贯15加18",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AKJ.QJ3.J985.K74",
+          "E": "T987.T98.AQT.JT9",
+          "S": "Q32.AK4.K74.AQ85",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "cb392defb07e27d5": {
+      "name": "无将16加17最高限接受的保守拒绝",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.QJ3.KT85.K74",
+          "E": "T987.T98.AQ9.JT9",
+          "S": "QJ3.AK4.J74.AQ85",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "bf32dae623cfc63a": {
+      "name": "21点2NT加12点定量接受",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.KQ3.KJ85.KQ4",
+          "E": "T987.T98.AQT.JT9",
+          "S": "QJ3.AJ4.974.A875",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "4f58e4340874e7ab": {
+      "name": "20点2NT加12点定量拒绝",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.KQ3.KT85.KQ4",
+          "E": "T987.T98.AQJ.JT9",
+          "S": "QJ3.AJ4.974.A875",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "184b434b4b720026": {
+      "name": "强2C转22至24均型再定量接受",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AK2.AK3.AJ85.KQ4",
+          "E": "T987.J98.KQT.JT9",
+          "S": "QJ3.QT4.974.A875",
+          "W": "654.7652.632.632"
+        }
+      }
+    },
+    "85f07aee34bbd11d": {
+      "name": "自然黑桃问关键张两张答叫后小满贯",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "K9876.QJ2.AQ2.74",
+          "E": "T54.T986.JT98.QJ",
+          "S": "AQJ2.AK3.K74.K85",
+          "W": "3.754.653.AT9632"
+        }
+      }
+    },
+    "000788f114489a9e": {
+      "name": "同牌关键张不足停五阶",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "T9876.QJ2.AQ2.QJ",
+          "E": "K54.T986.JT98.74",
+          "S": "AQJ2.AK3.K74.K85",
+          "W": "3.754.653.AT9632"
+        }
+      }
+    },
+    "126d1e69d083fd4a": {
+      "name": "红桃关键张两张答5H后6H",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "QJ2.K9876.AQ2.74",
+          "E": "T986.T54.JT98.QJ",
+          "S": "AK3.AQJ2.K74.K85",
+          "W": "754.3.653.AT9632"
+        }
+      }
+    },
+    "d715faa54e4cc080": {
+      "name": "红桃关键张一张答5D后停5H",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "QJ2.T9876.AQ2.QJ",
+          "E": "T986.K54.JT98.74",
+          "S": "AK3.AQJ2.K74.K85",
+          "W": "754.3.653.AT9632"
+        }
+      }
+    },
+    "dd10660504122677": {
+      "name": "黑桃满贯问叫缺旁门控制回4S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "K9876.QJ2.AQ2.74",
+          "E": "T54.T986.JT98.KJ",
+          "S": "AQJ2.AK3.K74.Q85",
+          "W": "3.754.653.AT9632"
+        }
+      }
+    },
+    "9d5c4801c264234e": {
+      "name": "黑桃满贯问叫缺将Q回4S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "K9876.QJ2.AQ2.74",
+          "E": "QT4.T986.JT98.85",
+          "S": "AJ52.AK3.K74.KQJ",
+          "W": "3.754.653.AT9632"
+        }
+      }
+    }
+  },
+  "specification": "systems/7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5.md",
+  "origin": "g001-Z"
+}

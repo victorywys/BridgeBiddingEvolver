@@ -1,0 +1,50 @@
+{
+  "schema": "bridge-published-research-archive/v1",
+  "scope": "Frozen executable protocols and authored regression inputs only. No model transcripts, private credentials, unfinished drafts or reusable independent fitness evidence.",
+  "snapshots": [
+    {
+      "hash": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f",
+      "name": "Z·分区自然研究制 v1",
+      "ir": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f.json",
+      "specification": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f.md",
+      "source_run": "evo-4490f1d93de14d4f9f42fd2585872191",
+      "source_engine": "dd341e0120bac713352fc6ea77ee7680bbb86ff59c6f673fb6450e5ade03eeb0",
+      "source_model": "gpt-6-astra",
+      "rules": 58,
+      "states": 22,
+      "status": "historical-lineage-incumbent-not-a-strength-claim"
+    },
+    {
+      "hash": "2344a366188144b84889bdb7d77969e12ff45cbebb00fda4ac0568f5e4b98669",
+      "name": "Z·分区自然研究制 v2R（自然竞争继承复核）",
+      "ir": "2344a366188144b84889bdb7d77969e12ff45cbebb00fda4ac0568f5e4b98669.json",
+      "specification": "2344a366188144b84889bdb7d77969e12ff45cbebb00fda4ac0568f5e4b98669.md",
+      "source_run": "evo-4490f1d93de14d4f9f42fd2585872191",
+      "source_engine": "dd341e0120bac713352fc6ea77ee7680bbb86ff59c6f673fb6450e5ade03eeb0",
+      "source_model": "gpt-6-astra",
+      "rules": 76,
+      "states": 28,
+      "release": "2344a366188144b84889bdb7d77969e12ff45cbebb00fda4ac0568f5e4b98669.release.json",
+      "parent": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f",
+      "tests": 48,
+      "change_witnesses": 3,
+      "status": "published-not-promoted"
+    },
+    {
+      "hash": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5",
+      "name": "Z·分区自然研究制 v3R（自然竞争与控制满贯）",
+      "ir": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5.json",
+      "specification": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5.md",
+      "source_run": "evo-4490f1d93de14d4f9f42fd2585872191",
+      "source_engine": "dd341e0120bac713352fc6ea77ee7680bbb86ff59c6f673fb6450e5ade03eeb0",
+      "source_model": "gpt-6-astra",
+      "rules": 83,
+      "states": 31,
+      "release": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5.release.json",
+      "parent": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f",
+      "tests": 72,
+      "change_witnesses": 8,
+      "status": "published-not-promoted"
+    }
+  ]
+}
