@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-engineering-v1.1-1000-frozen",
+  "dataset": "../datasets/ccba-prec-test-1000-v2/manifest.json",
+  "system_a": "../systems/classics/ccba.json",
+  "system_b": "../systems/classics/prec.json",
+  "migration_manifest": "../systems/classics/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-prec-1000-v2",
+  "bootstrap_seed": 2026102309,
+  "bootstrap_resamples": 2000
+}

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-engineering-development-smoke",
+  "dataset": "../.runtime/classic-smoke-data/manifest.json",
+  "system_a": "../systems/classics/ccba.json",
+  "system_b": "../systems/classics/prec.json",
+  "migration_manifest": "../systems/classics/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../.runtime/classic-smoke-result",
+  "bootstrap_seed": 7302,
+  "bootstrap_resamples": 200
+}

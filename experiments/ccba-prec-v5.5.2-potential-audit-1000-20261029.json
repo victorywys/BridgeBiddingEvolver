@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-v5.5.2-potential-audit-1000-20261029",
+  "dataset": "../datasets/classics-v5.5-potential-audit-1000-20261029/manifest.json",
+  "system_a": "../systems/classics-v5.5.2-compact/ccba.json",
+  "system_b": "../systems/classics-v5.5.2-compact/prec.json",
+  "migration_manifest": "../systems/classics-v5.5.2-compact/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-prec-v5.5.2-potential-audit-1000-20261029",
+  "bootstrap_seed": 2026102904,
+  "bootstrap_resamples": 2000
+}

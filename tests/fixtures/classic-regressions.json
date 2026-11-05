@@ -1,0 +1,30 @@
+{
+  "schema": "bridge-classic-regressions/v1",
+  "scope": "Previously consumed diagnostic cases, not independent evaluation data.",
+  "sources": {
+    "weak_minor_exits": "datasets/classics-v5.4-slam-audit-1000-20261029/boards.jsonl",
+    "late_strong_club_double": "datasets/classics-v5.5-potential-audit-1000-20261029/boards.jsonl",
+    "artificial_splinter_3nt": "results/ccba-prec-v5.3-compact-audit-1000-20261028/dataset-boards.jsonl",
+    "minor_fit_reselection": "results/ccba-prec-v5.5.1-potential-audit-1000-20261029"
+  },
+  "cases": {
+    "weak_minor_exits": [
+      {"source_index": 297, "board": {"dealer": "E", "vulnerability": "both", "hands": {"N": "K7.7.JT6543.AKJ7", "E": "J85432.A654.2.85", "S": "QT9.KQ98.A87.432", "W": "A6.JT32.KQ9.QT96"}}},
+      {"source_index": 305, "board": {"dealer": "E", "vulnerability": "ns", "hands": {"N": "T32.J87.T2.AQ975", "E": "875.A543.AQJ.J63", "S": "AK9.KQ92.875.KT8", "W": "QJ64.T6.K9643.42"}}},
+      {"source_index": 343, "board": {"dealer": "W", "vulnerability": "none", "hands": {"N": "Q96.AJT.432.QJ84", "E": "T5.Q87432.Q8.973", "S": "AK72.K96.J76.KT6", "W": "J843.5.AKT95.A52"}}},
+      {"source_index": 601, "board": {"dealer": "E", "vulnerability": "both", "hands": {"N": "AJT753.873.76.T7", "E": "K964.K654.J2.QJ8", "S": "2.AT92.KQT543.K9", "W": "Q8.QJ.A98.A65432"}}}
+    ],
+    "late_strong_club_double": [
+      {"source_index": 0, "board": {"dealer": "N", "vulnerability": "none", "hands": {"N": "KQ.T4.AT62.AK742", "E": "AJ8.Q73.K93.Q983", "S": "54.982.QJ8754.65", "W": "T97632.AKJ65.-.JT"}}},
+      {"source_index": 592, "board": {"dealer": "N", "vulnerability": "none", "hands": {"N": "AKT65.J2.A94.AJ7", "E": "Q873.75.J8.KQT92", "S": "-.A986.KT7653.653", "W": "J942.KQT43.Q2.84"}}},
+      {"source_index": 804, "board": {"dealer": "N", "vulnerability": "ns", "hands": {"N": "J985.-.KT743.T984", "E": "7432.QT743.A.KJ7", "S": "AKQT6.AJ98.-.AQ62", "W": "-.K652.QJ98652.53"}}}
+    ],
+    "artificial_splinter_3nt": [
+      {"source_index": 91, "board": {"dealer": "W", "vulnerability": "ns", "hands": {"N": "65.K8732.AJ7.AJ3", "E": "98742.-.Q986.T852", "S": "T.AQJ65.K542.KQ4", "W": "AKQJ3.T94.T3.976"}}}
+    ],
+    "minor_fit_reselection": [
+      {"source_index": 705, "board": {"dealer": "E", "vulnerability": "ns", "hands": {"N": "83.AJ62.-.AKQJT87", "E": "K52.K8.K8763.932", "S": "AQ64.QT9.A95.654", "W": "JT97.7543.QJT42.-"}}, "seat": "N", "prefix": ["P", "1C", "P", "1H", "P", "1S", "P", "2D", "P", "2H", "P"], "expected_call": "3C"},
+      {"source_index": 743, "board": {"dealer": "W", "vulnerability": "none", "hands": {"N": "97.AJT.864.KT984", "E": "AKJ6.832.AQJ.QJ7", "S": "T532.K96.52.6532", "W": "Q84.Q754.KT973.A"}}, "seat": "E", "prefix": ["1D", "P", "1S", "P", "2D", "P", "2H", "P", "2S", "P"], "expected_call": "3D"}
+    ]
+  }
+}

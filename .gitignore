@@ -1,27 +1,33 @@
-repos/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
 .venv/
-venv/
-.env
-.mypy_cache/
-.ruff_cache/
+__pycache__/
+*.py[cod]
 *.egg-info/
 build/
 dist/
+node_modules/
+.runtime/
+.dev-tmp/
 
-# DDS cache (regenerable, large)
-*.pkl
-.cache/
+# Local experiment data and rebuildable historical exports.
+/datasets/
+/results/
+/systems/classics*/
+!/systems/classics-*-compact/
+/systems/classics-*-compact/*.md
+/tools/board-viewer/app.mjs
 
-# DDS error dumps (written by endplay/libdds on failure)
-dump.txt
-
-# Editor
-.vscode/
-.idea/
-*.swp
+# Local credentials, solver binaries, logs and editor state.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+*.sqlite
+*.sqlite-*
+*.so
+*.dylib
+*.dll
+/.vscode/
+/.idea/
 .DS_Store

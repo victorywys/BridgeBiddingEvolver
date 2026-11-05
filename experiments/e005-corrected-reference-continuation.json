@@ -1,0 +1,32 @@
+{
+  "name": "E005 公开承诺修复后的Astra续跑",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "baselines": [
+    "systems/classics-v5.5.4-compact/ccba.json",
+    "systems/classics-v5.5.4-compact/prec.json"
+  ],
+  "origins": ["existing", "blank"],
+  "research_seed_run": "evo-bd66215f9e14486498a13ebdc2f13ba0",
+  "benchmark_revision_reason": "参考体系由冻结v5.5.3显式修订为v5.5.4：消除四张自然再叫与八张配合探索、被迫三阶再叫与七张坚固套跳叫的公开编码冲突。原128副/256桌公开保证重放和第86副6个真实DDS配对已通过。旧对手、失败牌、模型用量和成绩保留；本次使用新参考重新发牌，不拼接旧成绩，也不声称已战胜原v5.5.3目标。",
+  "generations": 3,
+  "research_task": "继续来源实验已付费保存的Z自然竞争体系和CCBA研究工作，不要从头重建。先阅读继承的规则、案例、48项已通过的Z测试及A草稿；对照新的parent参考，清除旧版公开保证编码冲突。Z已发布的候选可重新运行测试后提交外层新参考评测，不要遗失此前成果。先在预算内交付可执行完整候选，再探索替代设计。允许整体重构自然竞争、干扰应对、fallback和满贯；每个关键变化要有实际行为见证、执行测试和真实DDS探索，发现错误继续修复。旧参考下的探索均分只作历史开发线索，不算本次成绩；重要假设、试验结论和局限用中文research_note记录。正式晋级只由新共同牌确认。",
+  "workers": 2,
+  "max_agent_requests": 494,
+  "max_agent_tokens": 6628707,
+  "max_pairs": 198973,
+  "max_seconds": 19917,
+  "max_output_tokens": 32768,
+  "max_research_turns": 48,
+  "max_tool_calls": 256,
+  "max_releases": 3,
+  "max_lab_boards": 512,
+  "research_seconds": 2400,
+  "model_retries": 2,
+  "model_retry_delay": 5,
+  "max_promotions": 10,
+  "plateau_limit": 0,
+  "automatic_goal_check": false
+}

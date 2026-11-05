@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bridge-evolve"
+dynamic = ["version"]
+description = "Reproducible experiments for evolving executable bridge bidding protocols."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+bridge-evolve = "bridge_evolve.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "bridge_evolve.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

@@ -1,0 +1,31 @@
+{
+  "name": "E006 上下文导航后的Astra续跑",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "baselines": [
+    "systems/classics-v5.5.4-compact/ccba.json",
+    "systems/classics-v5.5.4-compact/prec.json"
+  ],
+  "origins": ["existing", "blank"],
+  "research_seed_run": "evo-4490f1d93de14d4f9f42fd2585872191",
+  "generations": 3,
+  "research_task": "使用新的navigate_system上下文组织继续来源实验，保留各自谱系已保存的体系、案例、测试和研究笔记，不从头重建，不把别的谱系的测试当成自己的。先检查启动包中的本会话库存与最近结果；用按阶段/叫品/ID搜索、依赖读取、反向引用和compare_to=parent语义diff定位真正需要关心的部分，不分页扫描整个features或rules。Z继承的是83规则、46案例、72项测试的成熟自然竞争及定量/关键张草稿：本轮优先实际重跑继承测试，确认完整一致后尽快重新发布已有快照并finish_research，让外层进入新牌评测；原发布记录与旧DDS探索保留在来源实验，不是本轮成绩。A继承2827规则、13案例的未发布CCBA竞争草稿且没有已编写测试：优先用语义diff定位与parent v5.5.4的公开编码差异，修复必要冲突并编写实际可执行回归；不要寻找不存在于本工作区的Z测试。B从当前精确v5.5.4开始，先选择一个有诊断证据且能在本轮完成的完整协议改善，不先通读所有分支。允许在后续研究重构全部开叫、自然fallback、竞争、满贯及跨模块接口；成熟一致的候选应及时发布并结束本次episode，不为用完回合而持续浏览。每个新设计要实际运行测试，有真实行为变化见证；DDS探索只作诊断，不能拿一次牌例最优定约作强制标签。使用中文research_note记录关键假设、实际结果与局限。只能由外层新共同随机牌与独立晋级确认更新冠军，不能提前宣称胜出。",
+  "workers": 2,
+  "max_agent_requests": 494,
+  "max_agent_tokens": 10000000,
+  "max_pairs": 198973,
+  "max_seconds": 19917,
+  "max_output_tokens": 32768,
+  "max_research_turns": 48,
+  "max_tool_calls": 256,
+  "max_releases": 3,
+  "max_lab_boards": 512,
+  "research_seconds": 2400,
+  "model_retries": 2,
+  "model_retry_delay": 5,
+  "max_promotions": 10,
+  "plateau_limit": 0,
+  "automatic_goal_check": false
+}

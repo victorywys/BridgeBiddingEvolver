@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "operator_version": 1,
+  "name": "实验1NT-v1：无将邀请与双高花转移",
+  "scope": "uncontested-1nt",
+  "features": {
+    "opening": {"op": "and", "args": [
+      {"op": "between", "args": [{"op": "hcp"}, 15, 17]},
+      {"op": "balanced"}
+    ]},
+    "invitation": {"op": "between", "args": [{"op": "hcp"}, 8, 9]},
+    "game_values": {"op": "ge", "args": [{"op": "hcp"}, 10]},
+    "maximum": {"op": "eq", "args": [{"op": "hcp"}, 17]},
+    "hearts_preferred": {"op": "and", "args": [
+      {"op": "ge", "args": [{"op": "length", "suit": "H"}, 5]},
+      {"op": "ge", "args": [{"op": "length", "suit": "H"}, {"op": "length", "suit": "S"}]}
+    ]},
+    "spades_preferred": {"op": "and", "args": [
+      {"op": "ge", "args": [{"op": "length", "suit": "S"}, 5]},
+      {"op": "gt", "args": [{"op": "length", "suit": "S"}, {"op": "length", "suit": "H"}]}
+    ]}
+  },
+  "protocol": {
+    "initial": "start",
+    "states": {
+      "start": {"on": {"1NT": "opened"}, "otherwise": "outside"},
+      "outside": {"on": {}, "otherwise": "outside"},
+      "opened": {"on": {"P": "respond"}, "otherwise": "outside"},
+      "respond": {"on": {
+        "P": "signed_off", "2D": "h_transfer_lho", "2H": "s_transfer_lho",
+        "2NT": "nt_invite_lho", "3NT": "signed_off"
+      }, "otherwise": "outside"},
+      "h_transfer_lho": {"on": {"P": "h_transfer_accept"}, "otherwise": "outside"},
+      "s_transfer_lho": {"on": {"P": "s_transfer_accept"}, "otherwise": "outside"},
+      "h_transfer_accept": {"on": {"2H": "h_transfer_rho"}, "otherwise": "outside"},
+      "s_transfer_accept": {"on": {"2S": "s_transfer_rho"}, "otherwise": "outside"},
+      "h_transfer_rho": {"on": {"P": "h_continue"}, "otherwise": "outside"},
+      "s_transfer_rho": {"on": {"P": "s_continue"}, "otherwise": "outside"},
+      "h_continue": {"on": {
+        "P": "signed_off", "2NT": "h_invite_lho", "3NT": "h_game_lho"
+      }, "otherwise": "outside"},
+      "s_continue": {"on": {
+        "P": "signed_off", "2NT": "s_invite_lho", "3NT": "s_game_lho"
+      }, "otherwise": "outside"},
+      "nt_invite_lho": {"on": {"P": "nt_invite_decide"}, "otherwise": "outside"},
+      "h_invite_lho": {"on": {"P": "h_invite_decide"}, "otherwise": "outside"},
+      "s_invite_lho": {"on": {"P": "s_invite_decide"}, "otherwise": "outside"},
+      "h_game_lho": {"on": {"P": "h_game_decide"}, "otherwise": "outside"},
+      "s_game_lho": {"on": {"P": "s_game_decide"}, "otherwise": "outside"},
+      "nt_invite_decide": {"on": {"P": "signed_off", "3NT": "signed_off"}, "otherwise": "outside"},
+      "h_invite_decide": {"on": {
+        "P": "signed_off", "3NT": "signed_off", "3H": "signed_off", "4H": "signed_off"
+      }, "otherwise": "outside"},
+      "s_invite_decide": {"on": {
+        "P": "signed_off", "3NT": "signed_off", "3S": "signed_off", "4S": "signed_off"
+      }, "otherwise": "outside"},
+      "h_game_decide": {"on": {"P": "signed_off", "4H": "signed_off"}, "otherwise": "outside"},
+      "s_game_decide": {"on": {"P": "signed_off", "4S": "signed_off"}, "otherwise": "outside"},
+      "signed_off": {"on": {"P": "signed_off"}, "otherwise": "outside"}
+    }
+  },
+  "rules": [
+    {
+      "id": "open_1nt", "priority": 100,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "start"]},
+        {"op": "eq", "args": [{"op": "role"}, "dealer"]},
+        {"op": "ref", "name": "opening"}
+      ]},
+      "call": "1NT"
+    },
+    {
+      "id": "transfer_hearts", "priority": 90,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "respond"]},
+        {"op": "ref", "name": "hearts_preferred"}
+      ]},
+      "call": "2D"
+    },
+    {
+      "id": "transfer_spades", "priority": 90,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "respond"]},
+        {"op": "ref", "name": "spades_preferred"}
+      ]},
+      "call": "2H"
+    },
+    {
+      "id": "accept_hearts", "priority": 90,
+      "when": {"op": "eq", "args": [{"op": "state"}, "h_transfer_accept"]},
+      "call": "2H"
+    },
+    {
+      "id": "accept_spades", "priority": 90,
+      "when": {"op": "eq", "args": [{"op": "state"}, "s_transfer_accept"]},
+      "call": "2S"
+    },
+    {
+      "id": "invite_with_fit_h_max", "priority": 80,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "h_invite_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, 3]},
+        {"op": "ref", "name": "maximum"}
+      ]},
+      "call": "4H"
+    },
+    {
+      "id": "invite_with_fit_s_max", "priority": 80,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "s_invite_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "S"}, 3]},
+        {"op": "ref", "name": "maximum"}
+      ]},
+      "call": "4S"
+    },
+    {
+      "id": "invite_with_fit_h_min", "priority": 70,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "h_invite_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, 3]}
+      ]},
+      "call": "3H"
+    },
+    {
+      "id": "invite_with_fit_s_min", "priority": 70,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "s_invite_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "S"}, 3]}
+      ]},
+      "call": "3S"
+    },
+    {
+      "id": "game_with_fit_h", "priority": 70,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "h_game_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, 3]}
+      ]},
+      "call": "4H"
+    },
+    {
+      "id": "game_with_fit_s", "priority": 70,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "s_game_decide"]},
+        {"op": "ge", "args": [{"op": "length", "suit": "S"}, 3]}
+      ]},
+      "call": "4S"
+    },
+    {
+      "id": "accept_nt_invitation", "priority": 60,
+      "when": {"op": "and", "args": [
+        {"op": "in", "args": [{"op": "state"}, ["nt_invite_decide", "h_invite_decide", "s_invite_decide"]]},
+        {"op": "ref", "name": "maximum"}
+      ]},
+      "call": "3NT"
+    },
+    {
+      "id": "invite_nt", "priority": 50,
+      "when": {"op": "and", "args": [
+        {"op": "in", "args": [{"op": "state"}, ["respond", "h_continue", "s_continue"]]},
+        {"op": "ref", "name": "invitation"}
+      ]},
+      "call": "2NT"
+    },
+    {
+      "id": "bid_nt_game", "priority": 50,
+      "when": {"op": "and", "args": [
+        {"op": "in", "args": [{"op": "state"}, ["respond", "h_continue", "s_continue"]]},
+        {"op": "ref", "name": "game_values"}
+      ]},
+      "call": "3NT"
+    }
+  ],
+  "fallback": {"call": "P"}
+}

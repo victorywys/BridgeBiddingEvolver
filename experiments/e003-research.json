@@ -1,0 +1,30 @@
+{
+  "name": "E003 Astra 自主体系研究",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "baselines": [
+    "systems/classics-v5.5.4-compact/ccba.json",
+    "systems/classics-v5.5.4-compact/prec.json"
+  ],
+  "origins": ["existing", "blank"],
+  "research_task": "以成绩为唯一适应度，研究更强、更完整的搭档叫牌协议。允许大幅重写或原创开叫、应叫、竞争、控制和接力结构，并细化全部fallback；自主生成边界牌、编写实际测试、调试、讨论、迭代后提交完整体系。不要只提出单叫阈值补丁。",
+  "workers": 2,
+  "max_agent_requests": 576,
+  "max_agent_tokens": 12000000,
+  "max_output_tokens": 32768,
+  "max_tool_calls": 256,
+  "max_releases": 4,
+  "max_lab_boards": 256,
+  "research_seconds": 1800,
+  "max_pairs": 200000,
+  "max_seconds": 21600,
+  "max_promotions": 10,
+  "min_promotion_delta": 0.05,
+  "max_opponent_regression": 0.05,
+  "promotion_alpha": 0.05,
+  "goal_alpha": 0.05,
+  "goal_delta": 0.2,
+  "automatic_goal_check": false
+}

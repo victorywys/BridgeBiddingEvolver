@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#21674f">
+  <title>桥牌牌例台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ctext y='32' font-size='34'%3E%E2%99%A0%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/lucide.js" defer></script>
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="桥牌牌例台首页"><span class="brand-icon"><i data-lucide="club"></i></span><span>桥牌牌例台</span><span class="brand-en">BOARD ROOM</span></a>
+    <span class="review-label"><span class="status-dot"></span>牌后审查</span>
+    <div class="header-actions">
+      <button id="home-button" class="button" title="审计首页与新建批次"><i data-lucide="house"></i><span>首页</span></button>
+      <button id="custom-button" class="button" title="创建或编辑自定义牌例"><i data-lucide="square-plus"></i><span>自定义牌例</span></button>
+      <button id="audit-history-button" class="button" title="查看单副审计任务及报告"><i data-lucide="history"></i><span>审计历史</span></button>
+      <button id="import-button" class="button" title="导入JSON、JSONL、PBN或运行ZIP"><i data-lucide="upload"></i><span>导入</span></button>
+      <details id="export-menu" class="export-menu">
+        <summary class="button" title="导出牌例"><i data-lucide="download"></i><span>导出</span><i data-lucide="chevron-down" class="tiny-icon"></i></summary>
+        <div class="dropdown">
+          <button data-export="current-json"><i data-lucide="file-json-2"></i>当前牌例 · 审查JSON</button>
+          <button data-export="current-pbn"><i data-lucide="file-text"></i>当前牌例 · PBN</button>
+          <button data-export="current-agent"><i data-lucide="list"></i>当前牌例 · Agent摘要</button>
+          <button data-export="board-json"><i data-lucide="file-code-2"></i>当前手牌 · 引擎JSON</button>
+          <hr>
+          <button data-export="filtered-json"><i data-lucide="files"></i>筛选结果 · 审查JSON</button>
+          <button data-export="filtered-pbn"><i data-lucide="files"></i>筛选结果 · PBN</button>
+          <button data-export="filtered-compact"><i data-lucide="archive"></i>筛选结果 · 无损压缩记录</button>
+          <button data-export="filtered-agent"><i data-lucide="list"></i>筛选结果 · Agent摘要</button>
+          <hr>
+          <a class="button small" href="/api/human-auctions/export" download>人类参考全部版本 · JSONL</a>
+        </div>
+      </details>
+      <button id="compare-button" class="button primary" title="选择体系并重新叫牌"><i data-lucide="arrow-left-right"></i><span>体系对比</span></button>
+      <button id="audit-button" class="button primary" title="重新审计当前牌例并持久保存报告"><i data-lucide="scan-line"></i><span>单副审计</span></button>
+    </div>
+    <input id="import-file" type="file" accept=".json,.jsonl,.pbn,.zip" hidden>
+  </header>
+
+  <section id="home" class="home" aria-label="审计首页" hidden>
+    <div class="home-heading"><div><div class="eyebrow">BOARD ROOM</div><h1>审计工作台</h1></div><button id="refresh-home" class="button">刷新记录</button></div>
+    <section class="home-card evolution-home" aria-label="体系自进化">
+      <div class="section-heading"><h2>体系自进化</h2><span>随机新牌 · 两个固定对手</span></div>
+      <details id="evolution-controls"><summary>开始新的进化实验</summary>
+        <form id="evolution-form">
+          <div class="form-grid"><div class="form-field"><label for="evolution-system-a">固定对手／现有起点A</label><select id="evolution-system-a" required></select></div><div class="form-field"><label for="evolution-system-b">固定对手／现有起点B</label><select id="evolution-system-b" required></select></div></div>
+          <div class="form-grid"><div class="form-field"><label for="evolution-profile">规模</label><select id="evolution-profile"><option value="smoke">小规模闭环（每轮8–64副）</option><option value="pilot" selected>标准试运行（每轮128–2000副）</option></select></div><div class="form-field"><label for="evolution-generations">最多代数</label><input id="evolution-generations" type="number" min="1" max="20" value="3" required></div></div>
+          <div class="form-grid"><div class="form-field"><label for="evolution-name">实验名称</label><input id="evolution-name" maxlength="160" placeholder="例如：原创开叫与接力研究"></div><div class="form-field"><label for="evolution-source">研究方式</label><select id="evolution-source"><option value="research">自主研究：工具与多轮调试</option><option value="agent">旧版：单次局部提案</option><option value="numbers">确定性参数变异对照</option></select></div></div>
+          <div class="form-grid"><div class="form-field"><label for="evolution-model">模型</label><input id="evolution-model" value="gpt-6-astra" list="evolution-models" required><datalist id="evolution-models"></datalist></div><div class="form-field"><label for="evolution-origins">研究起点</label><select id="evolution-origins"><option value="both">现有两套体系＋空白原创</option><option value="existing">现有两套体系</option><option value="blank">只从空白原创</option></select></div></div>
+          <div class="report-actions"><button id="refresh-evolution-models" class="button small" type="button">读取可用模型</button><span id="evolution-model-status" class="form-hint"></span></div>
+          <p id="evolution-continuation" class="form-hint" hidden><span id="evolution-continuation-caption"></span> <button id="clear-evolution-continuation" class="button small" type="button">取消续接</button></p>
+          <details class="evolution-settings"><summary>研究任务与预算</summary>
+            <label for="evolution-task">研究任务（可选）</label><textarea id="evolution-task" rows="3" placeholder="可重写完整体系，自主生成牌例、测试、调试和讨论。"></textarea>
+            <div class="form-grid"><div class="form-field"><label for="evolution-effort">推理强度</label><select id="evolution-effort"><option value="high">high</option><option value="xhigh">xhigh</option><option value="max">max</option><option value="medium">medium</option><option value="low">low</option></select></div><div class="form-field"><label for="evolution-max-turns">每次研究最多模型轮数</label><input id="evolution-max-turns" type="number" min="1" max="500" value="48" required></div></div>
+            <div class="form-grid"><div class="form-field"><label for="evolution-max-requests">全实验模型请求上限（含讨论）</label><input id="evolution-max-requests" type="number" min="1" max="10000" value="576" required></div><div class="form-field"><label for="evolution-max-tokens">全实验token预算</label><input id="evolution-max-tokens" type="number" min="1000" max="1000000000" value="12000000" required></div></div>
+            <div class="form-grid"><div class="form-field"><label for="evolution-max-output">单次最大输出token</label><input id="evolution-max-output" type="number" min="256" max="128000" value="32768" required></div><div class="form-field"><label for="evolution-max-tools">每次研究工具调用上限</label><input id="evolution-max-tools" type="number" min="1" max="5000" value="256" required></div></div>
+            <div class="form-grid"><div class="form-field"><label for="evolution-research-seconds">每次研究时间上限（秒）</label><input id="evolution-research-seconds" type="number" min="10" max="86400" value="1800" required></div><div class="form-field"><label for="evolution-max-seconds">全实验时间上限（秒）</label><input id="evolution-max-seconds" type="number" min="1" max="604800" value="21600" required></div></div>
+            <div class="form-grid"><div class="form-field"><label for="evolution-max-pairs">全实验比赛配对上限</label><input id="evolution-max-pairs" type="number" min="1" max="10000000" value="200000" required></div><div class="form-field"><label for="evolution-lab-boards">每次研究诊断牌数上限</label><input id="evolution-lab-boards" type="number" min="1" max="10000" value="256" required></div></div>
+            <div class="form-field"><label for="evolution-max-releases">每次研究最多发布完整候选数</label><input id="evolution-max-releases" type="number" min="1" max="100" value="4" required></div>
+            <p class="form-hint">请求、token和比赛配对按实验共享，恢复不重置。token先保守预留，收到实际用量后结算；金额以网关账单为准。模型失败不自动降级。</p>
+          </details>
+          <p class="form-hint">每轮现场随机发牌，同轮各候选使用相同牌例；这两种规模均不自动启动10000副达标检测。</p>
+          <p id="evolution-error" class="form-error" role="alert" hidden></p><div class="dialog-footer"><button id="start-evolution" class="button primary" type="submit">开始自进化</button></div>
+        </form>
+      </details>
+      <div id="evolution-jobs"></div>
+    </section>
+    <div class="home-layout">
+      <section class="home-card new-audit"><div class="section-heading"><h2>开启一次新审计</h2><span>两桌换位 · 真实DDS / Par</span></div>
+        <form id="batch-form">
+          <div class="form-grid"><div class="form-field"><label for="batch-label">批次名称（可选）</label><input id="batch-label" maxlength="160" placeholder="如：强梅花支持问叫专项"></div><div class="form-field"><label for="batch-count">基础牌数（1–1000）</label><input id="batch-count" type="number" min="1" max="1000" value="100" required></div></div>
+          <div class="form-grid"><div class="form-field"><label for="batch-system-a">体系A · 桌1南北 / 桌2东西</label><select id="batch-system-a" required></select></div><div class="form-field"><label for="batch-system-b">体系B · 桌1东西 / 桌2南北</label><select id="batch-system-b" required></select></div></div>
+          <div class="form-grid"><div class="form-field"><label for="batch-dealer">发牌人</label><select id="batch-dealer"><option value="cycle">按N/E/S/W循环</option><option>N</option><option>E</option><option>S</option><option>W</option></select></div><div class="form-field"><label for="batch-vul">局况</label><select id="batch-vul"><option value="cycle">按既定周期平衡</option><option value="none">双方无局</option><option value="ns">南北有局</option><option value="ew">东西有局</option><option value="both">双方有局</option></select></div></div>
+          <details id="sampling-details"><summary>四家HCP与套长条件（留空＝不限）</summary><div id="sampling-fields" class="sampling-fields"></div><button id="reset-sampling" class="button small" type="button">清空全部发牌条件</button></details>
+          <details id="batch-options"><summary>运行选项</summary>
+            <div class="form-grid"><div class="form-field"><label for="batch-seed">随机种子（可选）</label><input id="batch-seed" type="number" min="0" max="9007199254740991" placeholder="留空自动生成"></div><div class="form-field"><label for="batch-attempt-limit">最多尝试发牌次数</label><input id="batch-attempt-limit" type="number" min="1" max="1000000" placeholder="自动"></div></div>
+            <div class="form-field"><label for="batch-workers">审计进程数</label><select id="batch-workers"><option value="">自动</option><option value="1">1进程</option><option value="2">2进程</option><option value="4">4进程</option></select></div>
+          </details>
+          <p id="batch-error" class="form-error" role="alert" hidden></p>
+          <div class="dialog-footer"><button id="validate-sampling" class="button" type="button">校验条件</button><button id="start-batch" class="button primary" type="submit">开始发牌并审计</button></div>
+        </form>
+      </section>
+      <div class="home-history">
+        <section class="home-card"><div class="section-heading"><h2>最近任务与报告</h2><button id="all-audit-history" class="text-button">全部任务</button></div><div id="home-jobs"></div></section>
+        <section id="audit-library" class="home-card"><div class="section-heading"><h2>审计记录</h2><span id="home-run-count"></span></div>
+          <input id="history-search" class="history-search" type="search" aria-label="搜索历史批次" placeholder="搜索名称或分类">
+          <div class="library-filters"><select id="library-view" aria-label="记录范围"><option value="active">全部记录</option><option value="trash">回收站</option></select><select id="library-category" aria-label="审计分类"><option value="all">全部分类</option><option value="">未分类</option></select><select id="library-status" aria-label="任务状态筛选"><option value="all">全部状态</option><option value="completed">已完成</option><option value="failed">失败 / 中断</option><option value="running">运行 / 排队中</option></select></div>
+          <div class="library-toolbar"><label><input id="library-select-all" type="checkbox">全选当前结果</label><span id="library-selected-count">未选择</span><button id="library-move" class="button small" disabled>分类</button><button id="library-trash" class="button small danger" disabled>删除</button><button id="library-restore" class="button small" hidden disabled>恢复</button></div>
+          <p id="library-error" class="form-error" role="alert" hidden></p><div id="home-runs"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="review-runbar" class="runbar" aria-label="当前运行">
+    <div class="run-selector"><label for="run-select">运行记录</label><select id="run-select" aria-label="选择运行记录"><option>载入中</option></select><span id="run-status" class="run-status">载入中</span></div>
+    <div class="run-metrics" aria-label="差异统计">
+      <div><strong id="metric-boards">—</strong><span>基础牌例</span></div>
+      <div><strong id="metric-auctions">—</strong><span>叫牌不同</span></div>
+      <div><strong id="metric-contracts">—</strong><span>定约不同</span></div>
+      <div><strong id="metric-imp">—</strong><span>IMP非零</span></div>
+    </div>
+  </section>
+
+  <div id="review-workspace" class="workspace">
+    <aside class="sidebar" aria-label="牌例列表">
+      <div class="sidebar-controls">
+        <div class="list-heading"><h2>牌例</h2><span id="filtered-count">0</span><button id="mobile-list-toggle" class="icon-button mobile-only" title="展开或收起牌例列表"><i data-lucide="list"></i></button></div>
+        <div class="search-field"><i data-lucide="search"></i><input id="search" type="search" placeholder="副号、手牌、规则ID" aria-label="搜索牌例"></div>
+        <div class="filter-row"><select id="difference-filter" aria-label="差异筛选"><option value="auction">叫牌不同</option><option value="contract">定约不同</option><option value="imp">IMP非零</option><option value="same-score">叫牌不同 · 同分</option><option value="audit">审计问题</option><option value="audit-failed">执行 / 检查失败</option><option value="flagged">待核查</option><option value="all">全部牌例</option></select><select id="sort" aria-label="排序"><option value="impact">分差最大</option><option value="number">副号升序</option></select></div>
+        <details id="advanced-filters" class="advanced-filters">
+          <summary>牌型 / 定约筛选 <span id="advanced-count"></span></summary>
+          <div class="advanced-fields">
+            <h3>同一手牌满足以下条件</h3>
+            <label>手牌位置<select id="hand-seat"><option value="any">任意一家</option><option>N</option><option>E</option><option>S</option><option>W</option><option value="NS">南北任一家</option><option value="EW">东西任一家</option></select></label>
+            <label>牌型类别<select id="shape-kind"><option value="any">任意牌型</option><option value="balanced">均型 4333/4432/5332</option><option value="two-suited">双套 ≥5 + ≥4</option><option value="three-suited">三套 4441/5440</option><option value="six-plus">有六张以上长套</option><option value="singleton">有单张</option><option value="void">有缺门</option></select></label>
+            <label class="wide">S-H-D-C牌型（*为任意）<input id="shape-pattern" placeholder="如 5-4-*-* 或 5332" autocomplete="off"></label>
+            <label>HCP下界<input id="hcp-min" type="number" min="0" max="40" placeholder="不限"></label>
+            <label>HCP上界<input id="hcp-max" type="number" min="0" max="40" placeholder="不限"></label>
+            <label class="wide">指定花色<select id="length-suit"><option value="S">♠ 黑桃</option><option value="H">♥ 红桃</option><option value="D">♦ 方块</option><option value="C">♣ 草花</option></select></label>
+            <label>张数下界<input id="length-min" type="number" min="0" max="13" placeholder="不限"></label>
+            <label>张数上界<input id="length-max" type="number" min="0" max="13" placeholder="不限"></label>
+            <h3>同一桌满足以下定约条件</h3>
+            <label>匹配范围<select id="contract-table"><option value="any">任一桌</option><option value="both">两桌都满足</option><option value="table1">只看第一桌</option><option value="table2">只看第二桌</option></select></label>
+            <label>定约类别<select id="contract-kind"><option value="any">任意类别</option><option value="partscore">部分定约</option><option value="game">成局（不含满贯）</option><option value="slam">小 / 大满贯</option><option value="passed-out">全Pass</option><option value="unfinished">尚未结束</option></select></label>
+            <label>阶数<select id="contract-level"><option value="any">任意阶数</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+            <label>花色<select id="contract-strain"><option value="any">任意花色</option><option value="S">♠ 黑桃</option><option value="H">♥ 红桃</option><option value="D">♦ 方块</option><option value="C">♣ 草花</option><option value="NT">NT 无将</option></select></label>
+            <label>庄家<select id="contract-declarer"><option value="any">任意庄家</option><option>N</option><option>E</option><option>S</option><option>W</option><option value="NS">南北方</option><option value="EW">东西方</option></select></label>
+            <label>加倍状态<select id="contract-doubling"><option value="any">任意</option><option value="1">未加倍</option><option value="2">X 加倍</option><option value="4">XX 再加倍</option></select></label>
+            <label class="wide">双明手结果<select id="contract-result"><option value="any">任意结果</option><option value="made">成约（含超墩）</option><option value="exact">恰好完成</option><option value="over">有超墩</option><option value="down">宕约</option><option value="unscored">未计分</option></select></label>
+            <label class="wide">满贯专项（需DDS）<select id="slam-filter"><option value="any">不限</option><option value="called">叫到满贯</option><option value="made">叫贯且DDS打成</option><option value="down">叫贯但DDS宕约</option><option value="available-small">本桌任一方可成小满贯</option><option value="available-grand">本桌任一方可成大满贯</option><option value="missed-small">本桌有可成小满贯未叫</option><option value="missed-grand">本桌有可成大满贯未叫</option></select></label>
+            <h3>其他条件</h3>
+            <label>局况<select id="board-vul"><option value="any">任意局况</option><option value="none">双方无局</option><option value="ns">南北有局</option><option value="ew">东西有局</option><option value="both">双方有局</option></select></label>
+            <label>审查状态<select id="review-filter"><option value="any">任意状态</option><option value="unreviewed">未审查</option><option value="flagged">待核查</option><option value="approved">已确认</option></select></label>
+            <label class="wide">绝对IMP至少<input id="imp-min" type="number" min="0" max="24" placeholder="不限（不把未计分当作0）"></label>
+          </div>
+        </details>
+        <p id="filter-error" class="form-error" role="alert" hidden></p>
+        <div class="filter-footer"><span id="filter-caption">条件可组合</span><button id="reset-filters" type="button">重置全部筛选</button></div>
+      </div>
+      <div id="board-list" class="board-list" role="list" aria-label="筛选后的牌例"></div>
+      <button id="load-more" class="load-more" hidden>加载更多</button>
+      <div class="sidebar-foot"><span class="live-dot"></span><span id="source-caption">冻结运行记录</span></div>
+    </aside>
+
+    <main id="main" class="main" aria-busy="true">
+      <section id="run-loading" class="run-loading" aria-label="打开牌例的进度与错误" hidden>
+        <div class="section-heading"><h2 id="run-loading-title">正在打开牌例</h2><span id="run-loading-elapsed"></span></div>
+        <p id="run-loading-stage" role="status"></p>
+        <progress id="run-loading-progress" aria-label="正在加载审计牌例"></progress>
+        <p id="run-loading-error" class="form-error" role="alert" hidden></p>
+        <div class="report-actions"><button id="retry-run-load" class="button small" hidden>重试打开</button><button id="cancel-run-load" class="button small">返回首页</button></div>
+      </section>
+      <section id="active-audit" class="active-audit" aria-live="polite" hidden>
+        <div class="section-heading"><h2 id="audit-task-label"></h2><button id="hide-audit-task" class="icon-button" title="收起任务提示（不取消执行）"><i data-lucide="x"></i></button></div>
+        <p id="audit-task-stage"></p><progress id="audit-progress" max="100" value="0"></progress>
+        <div id="audit-task-actions" class="report-actions"></div>
+      </section>
+      <section id="single-audit-report" class="single-audit-report" aria-label="单副审计报告" hidden></section>
+      <section id="batch-audit-summary" class="batch-audit-summary" aria-label="本批审计问题汇总" hidden></section>
+      <section id="run-summary" class="run-summary" aria-label="冻结运行结果与审计" hidden>
+        <div class="summary-heading"><h2>本批结果</h2><span id="run-purpose" class="summary-label"></span></div>
+        <p id="run-score-perspective" class="summary-perspective"></p>
+        <dl class="summary-scores">
+          <div><dt>总 IMP</dt><dd id="run-total-imp"></dd></div>
+          <div><dt>平均 IMP / 副</dt><dd id="run-mean-imp"></dd></div>
+          <div><dt>95% 区间</dt><dd id="run-ci95"></dd></div>
+          <div><dt>A 赢 / 输 / 平</dt><dd id="run-outcomes"></dd></div>
+        </dl>
+        <p id="run-audit-summary" class="run-audit-summary" hidden></p>
+        <div id="run-slam-summary" class="run-slam-summary" aria-label="满贯专项统计" hidden></div>
+        <div id="run-audit-findings" class="audit-findings" aria-label="审计问题与牌例导航" hidden></div>
+        <p id="run-summary-note" class="summary-note"></p>
+        <details class="technical-details"><summary>检查与数据详情</summary><pre id="run-technical"></pre></details>
+      </section>
+      <div id="empty-state" class="empty-state" hidden><i data-lucide="search-x"></i><h2>没有匹配的牌例</h2><button id="clear-filter" class="button">清除筛选</button></div>
+      <div id="board-loading" class="board-loading" role="status" hidden><span id="board-loading-text"></span><button id="retry-board-load" class="button small" hidden>重试</button></div>
+      <div id="board-content" hidden>
+        <div class="detail-heading">
+          <div><div class="eyebrow">DEAL REVIEW <span id="board-origin">冻结记录</span></div><div class="title-row"><h1 id="board-title">牌例</h1><span id="board-imp" class="imp-display"></span><button id="flag-button" class="icon-button" title="标记待核查" aria-pressed="false"><i data-lucide="flag"></i></button></div><div id="board-meta" class="board-meta"></div></div>
+          <div class="board-navigation"><button id="share-board" class="icon-button" title="复制含筛选条件和选中叫品的链接"><i data-lucide="link"></i></button><form id="jump-form" class="jump-form"><label class="sr-only" for="jump-number">跳到副号</label><input id="jump-number" type="number" min="1" placeholder="副号"><button class="icon-button" type="submit" title="跳到指定副号"><i data-lucide="corner-down-left"></i></button></form><button id="previous-board" class="icon-button" title="上一副（←）" aria-label="上一副"><i data-lucide="chevron-left"></i></button><span id="board-position"></span><button id="next-board" class="icon-button" title="下一副（→）" aria-label="下一副"><i data-lucide="chevron-right"></i></button></div>
+        </div>
+
+        <div id="board-audit" class="board-audit" role="note" aria-label="当前牌例审计问题" hidden></div>
+        <div id="comparison-bar" class="comparison-bar" hidden><div class="segmented"><button id="show-frozen" aria-pressed="true">冻结记录</button><button id="show-interactive" aria-pressed="false">交互重叫</button></div><span id="comparison-oracle"></span><button id="close-comparison" class="icon-button" title="关闭交互对比"><i data-lucide="x"></i></button></div>
+
+        <div class="review-layout">
+          <section class="deal-section" aria-label="四手牌">
+            <div class="section-heading"><h2>手牌</h2><span id="deal-shape-label">N · E · S · W</span></div>
+            <div id="deal-board" class="deal-board">
+              <div id="hand-N" class="hand hand-north"></div><div id="hand-E" class="hand hand-east"></div><div id="hand-S" class="hand hand-south"></div><div id="hand-W" class="hand hand-west"></div>
+              <div class="compass" aria-hidden="true"><span class="compass-n">N</span><span class="compass-e">E</span><span class="compass-s">S</span><span class="compass-w">W</span><span class="compass-center">♠</span></div>
+            </div>
+            <div class="hand-legend"><span id="dealer-caption"></span><span id="vul-caption"></span></div>
+            <section id="dds-panel" class="dds-panel" aria-label="四家可成定约阶数与par"></section>
+            <section class="annotation-section" aria-label="审查记录"><div class="section-heading"><h2>审查记录</h2><select id="review-status" aria-label="审查状态"><option value="unreviewed">未审查</option><option value="flagged">待核查</option><option value="approved">已确认</option></select></div><label class="sr-only" for="review-note">审查备注</label><textarea id="review-note" rows="3" placeholder="审查备注"></textarea><div class="annotation-footer"><span id="annotation-status">本机记录</span><button id="save-note" class="button small"><i data-lucide="check"></i>保存</button></div></section>
+          </section>
+
+          <section class="auctions-section" aria-label="两桌叫牌对比">
+            <div class="section-heading"><h2>叫牌对照</h2><button id="jump-difference" class="text-button" title="定位到两桌第一个不同叫品"><span id="first-difference" class="difference-label"></span></button></div>
+            <div id="auction-tables" class="auction-tables"></div>
+            <section class="human-reference" aria-label="人类参考叫牌">
+              <div class="section-heading"><h2>人类参考叫牌</h2><button id="edit-human" class="button small">编辑 / 保存参考</button></div>
+              <p id="human-summary" class="form-hint"></p>
+            </section>
+            <section class="trace-section" aria-label="叫牌依据与公开解释">
+              <div class="section-heading"><h2>叫品解释</h2></div><div id="trace-selection" class="trace-selection"></div>
+              <section id="public-meaning" class="public-meaning" aria-label="本叫品的中文公开含义" hidden>
+                <div class="section-heading"><h2>叫品含义</h2><span id="public-meaning-basis" hidden></span></div>
+                <p id="public-meaning-summary" class="public-meaning-summary"></p>
+                <h3>本次新增公开信息</h3><ul id="public-meaning-new"></ul>
+                <details id="public-meaning-retained-section"><summary>继续有效的此前承诺</summary><ul id="public-meaning-retained"></ul></details>
+                <p id="public-meaning-notes" class="public-meaning-notes"></p>
+                <button id="browse-selected-call" class="text-button" type="button">查看这个叫品的体系分支</button>
+                <details id="meaning-technical" class="technical-details" hidden><summary>解释详情</summary><p id="public-meaning-warning" class="public-meaning-warning"></p></details>
+              </section>
+              <section id="call-frequency" class="call-frequency" aria-label="当前叫品的全批次统计" hidden>
+                <div class="section-heading"><h2>这个叫品在本批次有多常见</h2><select id="frequency-scope" aria-label="频率匹配范围"><option value="strict">严格局面</option><option value="sequence">同体系序列（忽略座位/局况）</option></select></div>
+                <div id="frequency-content"></div>
+              </section>
+              <p id="protocol-timing-note" class="protocol-note"></p>
+              <section id="protocol-state" class="protocol-state" aria-label="联手信息" hidden><div class="section-heading"><h2>联手信息</h2><span>叫牌前</span></div><dl class="protocol-ledger"><div><dt>目标</dt><dd id="protocol-goal"></dd></div><div><dt>当前义务</dt><dd id="protocol-forcing"></dd></div><div><dt>已定将牌</dt><dd id="protocol-trump"></dd></div><div><dt>联手公开点力</dt><dd id="protocol-hcp"></dd></div><div class="wide"><dt>双方公开点力</dt><dd id="protocol-roles"></dd></div><div class="wide"><dt>开叫前Pass上界</dt><dd id="protocol-passes"></dd></div><div class="wide"><dt>联手公开张数区间</dt><dd id="protocol-suits"></dd></div><div class="wide"><dt>双方套长区间</dt><dd id="protocol-shapes"></dd></div><div class="wide"><dt>已知套长关系</dt><dd id="protocol-relations"></dd></div><div class="wide"><dt>本人私有估计</dt><dd id="protocol-private"></dd></div><div class="wide"><dt>最近X / XX含义</dt><dd id="protocol-double"></dd></div></dl></section>
+              <section id="protocol-after" class="protocol-state" aria-label="本次叫品的公开更新" hidden></section>
+              <details class="technical-details"><summary>规则与计算详情</summary><div id="trace-rule" class="trace-rule"></div><div id="trace-features" class="trace-features"></div></details>
+            </section>
+          </section>
+        </div>
+        <details id="raw-record" class="raw-record"><summary><i data-lucide="braces"></i>原始牌例记录</summary><pre id="raw-json"></pre></details>
+        <footer class="detail-footer"><span id="record-identity"></span><span id="score-perspective">IMP：桌1_NS − 桌2_NS</span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="library-edit-dialog" class="dialog library-dialog">
+    <form id="library-edit-form"><div class="dialog-heading"><h2 id="library-edit-title">整理审计</h2><button class="icon-button" type="button" data-close-dialog="library-edit-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+      <div id="library-name-field" class="form-field"><label for="library-name">名称</label><input id="library-name" maxlength="160" required></div>
+      <div class="form-field"><label for="library-category-input">分类</label><input id="library-category-input" maxlength="80" list="library-categories" placeholder="例如：测试、满贯专项、待复查"><datalist id="library-categories"></datalist></div>
+      <p id="library-edit-error" class="form-error" role="alert" hidden></p><div class="dialog-footer"><button class="button" type="button" data-close-dialog="library-edit-dialog">取消</button><button id="save-library-edit" class="button primary" type="submit">保存</button></div>
+    </form>
+  </dialog>
+  <dialog id="evolution-dialog" class="dialog evolution-dialog" aria-labelledby="evolution-dialog-title">
+    <div class="dialog-heading"><h2 id="evolution-dialog-title">自进化实验</h2><button class="icon-button" data-close-dialog="evolution-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+    <div id="evolution-details" aria-live="polite"></div>
+  </dialog>
+  <dialog id="research-dialog" class="dialog evolution-dialog" aria-labelledby="research-dialog-title">
+    <div class="dialog-heading"><h2 id="research-dialog-title">自主研究日志</h2><button class="icon-button" data-close-dialog="research-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+    <div id="research-details" aria-live="polite"></div>
+  </dialog>
+  <dialog id="evolution-dashboard-dialog" class="dialog evolution-dashboard" aria-labelledby="evolution-dashboard-title">
+    <div class="dialog-heading"><h2 id="evolution-dashboard-title">进化实验实时追踪</h2><button class="icon-button" data-close-dialog="evolution-dashboard-dialog" title="关闭追踪（不停止任务）"><i data-lucide="x"></i></button></div>
+    <div id="evolution-dashboard-content" aria-live="polite"></div>
+  </dialog>
+  <dialog id="evo-system-dialog" class="dialog evo-system-dialog" aria-labelledby="evo-system-title">
+    <div class="dialog-heading"><h2 id="evo-system-title">当前体系</h2><button class="icon-button" data-close-dialog="evo-system-dialog" title="关闭体系"><i data-lucide="x"></i></button></div>
+    <p id="evo-system-hash" class="evo-hash"></p>
+    <div class="report-actions"><label for="evo-system-format">查看内容</label><select id="evo-system-format"><option value="navigation">按分支与局面查询</option><option value="md">完整体系说明</option><option value="json">可执行IR</option></select><a id="evo-system-download-md" class="button small" download>下载说明</a><a id="evo-system-download-json" class="button small" download>下载IR</a></div>
+    <div id="evo-system-browser" class="system-browser"></div>
+    <pre id="evo-system-document" class="evo-system-document" aria-busy="false"></pre>
+  </dialog>
+  <dialog id="evo-timeline-dialog" class="dialog evo-timeline-dialog" aria-labelledby="evo-timeline-title">
+    <div class="dialog-heading"><h2 id="evo-timeline-title">重要迭代里程碑</h2><button class="icon-button" data-close-dialog="evo-timeline-dialog" title="关闭里程碑"><i data-lucide="x"></i></button></div>
+    <div id="evo-timeline-content" aria-live="polite"></div>
+  </dialog>
+  <dialog id="library-delete-dialog" class="dialog library-dialog">
+    <form id="library-delete-form"><div class="dialog-heading"><h2>删除审计记录</h2><button class="icon-button" type="button" data-close-dialog="library-delete-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+      <p id="library-delete-caption"></p><ul id="library-delete-list"></ul><p class="form-hint">移入回收站后可恢复。</p><p id="library-delete-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-footer"><button class="button" type="button" data-close-dialog="library-delete-dialog">取消</button><button id="confirm-library-delete" class="button danger" type="submit">移入回收站</button></div>
+    </form>
+  </dialog>
+  <dialog id="compare-dialog" class="dialog compare-dialog"><form id="compare-form"><div class="dialog-heading"><h2>体系对比</h2><button class="icon-button" type="button" data-close-dialog="compare-dialog" title="关闭"><i data-lucide="x"></i></button></div><div class="form-field"><label for="system-a">体系 A</label><select id="system-a" required></select></div><div class="form-field"><label for="system-b">体系 B</label><select id="system-b" required></select></div><div class="allocation"><div><strong>桌1</strong><span>A · 南北</span><span>B · 东西</span></div><div><strong>桌2</strong><span>B · 南北</span><span>A · 东西</span></div></div><p id="compare-error" class="form-error" role="alert" hidden></p><div class="dialog-footer"><button class="button" type="button" data-close-dialog="compare-dialog">取消</button><button id="run-comparison" class="button primary" type="submit"><i data-lucide="play"></i><span>重新叫牌</span></button></div></form></dialog>
+  <dialog id="task-dialog" class="dialog task-dialog" aria-labelledby="task-dialog-title">
+    <div class="dialog-heading"><h2 id="task-dialog-title">任务进度与详情</h2><button class="icon-button" data-close-dialog="task-dialog" title="关闭进度（不取消任务）"><i data-lucide="x"></i></button></div>
+    <div id="task-dialog-content" aria-live="polite">正在读取任务…</div>
+  </dialog>
+  <dialog id="human-dialog" class="dialog human-dialog" aria-labelledby="human-title">
+    <form id="human-form">
+      <div class="dialog-heading"><h2 id="human-title">编辑人类参考叫牌</h2><button class="icon-button" type="button" data-close-dialog="human-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+      <p id="human-board-label" class="form-hint"></p>
+      <div class="form-grid"><div class="form-field"><label for="human-table">参考对应桌次</label><select id="human-table"><option value="table1">第一桌</option><option value="table2">第二桌</option></select></div><div class="form-field"><label for="human-label">参考名称</label><input id="human-label" maxlength="160" value="人类参考" required></div></div>
+      <p id="human-systems" class="form-hint"></p>
+      <div class="report-actions"><button id="copy-human-auction" class="button small" type="button">复制所选桌系统序列</button><button id="clear-human-auction" class="button small" type="button">清空草稿</button><a class="button small" href="/api/human-auctions/export" download>导出全部参考JSONL</a></div>
+      <div class="form-field"><label for="human-calls">从发牌人开始，按顺时针填写全部叫品</label><textarea id="human-calls" rows="4" spellcheck="false" placeholder="例如：1NT P 4NT P 6NT AP"></textarea></div>
+      <p class="form-hint">支持P/Pass、X、XX、1C至7NT及AP（补齐剩余Pass）；也可保存局部叫牌序列。</p>
+      <div class="form-field"><label for="human-note">理由 / 期望含义（可选）</label><textarea id="human-note" rows="3" maxlength="20000" placeholder="说明为什么希望这样叫，供后续离线优化研究使用。"></textarea></div>
+      <p id="human-error" class="form-error" role="alert" hidden></p>
+      <div id="human-preview" class="human-preview" hidden></div>
+      <div class="dialog-footer"><button id="preview-human" class="button" type="button">检查并预览</button><button id="save-human" class="button primary" type="submit">保存新版本</button></div>
+    </form>
+    <section class="human-versions"><h3>已保存版本</h3><p class="form-hint">每次保存保留旧版本；历史版本载入后只是草稿，再保存会绑定当前所选桌次与体系。</p><div id="human-history"></div></section>
+  </dialog>
+  <dialog id="custom-dialog" class="dialog custom-dialog" aria-labelledby="custom-title">
+    <form id="custom-form">
+      <div class="dialog-heading"><h2 id="custom-title">自定义牌例</h2><button class="icon-button" type="button" data-close-dialog="custom-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+      <p class="form-hint">每家13张、全副52张无重复；保存后可运行单副审计。</p>
+      <div class="custom-toolbar"><button id="copy-current-deal" class="button small" type="button">复制当前手牌</button><label for="random-seed">随机种子</label><input id="random-seed" type="number" min="0" max="9007199254740991" value="20261029"><button id="random-deal" class="button small" type="button">按种子发牌</button></div>
+      <div class="form-field"><label for="custom-label">牌例名称（可选）</label><input id="custom-label" maxlength="160" placeholder="例如：精确强梅花后的五张黑桃"></div>
+      <div class="form-grid"><div class="form-field"><label for="custom-dealer">发牌人</label><select id="custom-dealer"><option>N</option><option>E</option><option>S</option><option>W</option></select></div><div class="form-field"><label for="custom-vul">局况</label><select id="custom-vul"><option value="none">双方无局</option><option value="ns">南北有局</option><option value="ew">东西有局</option><option value="both">双方有局</option></select></div></div>
+      <div class="form-field"><label for="custom-format">输入方式</label><select id="custom-format"><option value="hands">逐家输入 S.H.D.C</option><option value="pbn">粘贴PBN（完整标签或 N: 四手）</option><option value="json">粘贴引擎JSON（完整一副）</option></select></div>
+      <div id="custom-hands" class="custom-hands">
+        <label>N 北家<input id="custom-N" autocomplete="off" spellcheck="false" placeholder="AKQ.JT9.KQ32.876"><small id="custom-count-N"></small></label>
+        <label>E 东家<input id="custom-E" autocomplete="off" spellcheck="false" placeholder="654.876.876.AKQJ"><small id="custom-count-E"></small></label>
+        <label>S 南家<input id="custom-S" autocomplete="off" spellcheck="false" placeholder="JT987.AKQ2.AJ.T9"><small id="custom-count-S"></small></label>
+        <label>W 西家<input id="custom-W" autocomplete="off" spellcheck="false" placeholder="32.543.T954.5432"><small id="custom-count-W"></small></label>
+      </div>
+      <div id="custom-text-field" class="form-field" hidden><label for="custom-text">一副完整牌例（完整PBN / JSON中的发牌人、局况优先）</label><textarea id="custom-text" rows="5" spellcheck="false"></textarea></div>
+      <p class="form-hint">花色顺序为黑桃、红桃、方块、草花，以英文句点分隔。10可写T或10，缺门可写“-”或留空。随机按钮仅填入草稿，不自动保存。</p>
+      <p id="custom-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-footer"><button id="validate-custom" class="button" type="button">校验牌例</button><button class="button primary" id="save-custom" type="submit">保存到牌例库</button></div>
+    </form>
+  </dialog>
+  <dialog id="audit-dialog" class="dialog compare-dialog" aria-labelledby="audit-title">
+    <form id="audit-form">
+      <div class="dialog-heading"><h2 id="audit-title">单副重跑并审计</h2><button class="icon-button" type="button" data-close-dialog="audit-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+      <p id="audit-source-label" class="form-hint"></p>
+      <div class="form-field"><label for="audit-system-a">体系 A（桌1南北 / 桌2东西）</label><select id="audit-system-a" required></select></div>
+      <div class="form-field"><label for="audit-system-b">体系 B（桌1东西 / 桌2南北）</label><select id="audit-system-b" required></select></div>
+      <label class="check-field"><input id="audit-fresh-dds" type="checkbox" checked>绕过缓存，再做一次新鲜DDS交叉核验</label>
+      <p class="form-hint">检查两桌叫牌合法性、真实庄家、确定性复跑、已编码点力/张数区间、公开协议及已知人工终局模式，生成中文报告、机器报告与完整ZIP。关闭页面不取消任务；任务按顺序执行，最多排队8个。</p>
+      <p class="form-hint">这是开发诊断，不是独立最终测试，也不代表全部语义契约或原手册等价性通过。</p>
+      <p id="audit-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-footer"><button class="button" type="button" data-close-dialog="audit-dialog">取消</button><button id="start-audit" class="button primary" type="submit">开始审计并生成报告</button></div>
+    </form>
+  </dialog>
+  <dialog id="history-dialog" class="dialog history-dialog" aria-labelledby="history-title"><div class="dialog-heading"><h2 id="history-title">单副审计历史</h2><button class="icon-button" data-close-dialog="history-dialog" title="关闭"><i data-lucide="x"></i></button></div><p class="form-hint">最近100个任务；所有报告独立保存，重启服务后仍可查看。中断和失败任务不冒称成功，可按原输入重试。</p><div id="audit-history-list"></div></dialog>
+  <dialog id="share-dialog" class="dialog compare-dialog"><div class="dialog-heading"><h2>牌例链接</h2><button class="icon-button" data-close-dialog="share-dialog" title="关闭"><i data-lucide="x"></i></button></div><p class="form-hint">保留运行、副号、筛选条件和选中叫品。接收方需要访问同一个本机服务。</p><input id="share-url" class="share-url" readonly aria-label="当前牌例链接"></dialog>
+  <dialog id="system-dialog" class="dialog system-dialog">
+    <div class="dialog-heading"><h2 id="system-title">体系内容</h2><button class="icon-button" data-close-dialog="system-dialog" title="关闭"><i data-lucide="x"></i></button></div>
+    <p id="system-hash" class="system-hash"></p><div id="system-browser" class="system-browser"></div>
+    <details id="system-full-specification"><summary>完整体系规范</summary>
+      <div class="system-toolbar"><button id="download-system" class="button small" title="下载完整体系规范"><i data-lucide="download"></i>下载完整规范</button><div><button id="system-previous" class="icon-button" title="上一段"><i data-lucide="chevron-left"></i></button><span id="system-page">0 / 0</span><button id="system-next" class="icon-button" title="下一段"><i data-lucide="chevron-right"></i></button></div></div><pre id="system-specification"></pre>
+    </details>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-translation-v2.0-development-smoke-16",
+  "dataset": "../datasets/ccba-prec-translation-v2-smoke-16/manifest.json",
+  "system_a": "../systems/classics-v2/ccba.json",
+  "system_b": "../systems/classics-v2/prec.json",
+  "migration_manifest": "../systems/classics-v2/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-prec-translation-v2-smoke-16",
+  "bootstrap_seed": 2026102611,
+  "bootstrap_resamples": 200
+}

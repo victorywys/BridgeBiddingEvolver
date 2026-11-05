@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-translation-current-smoke-100-20261027",
+  "dataset": "../datasets/ccba-prec-translation-v5.2-smoke-100-20261027/manifest.json",
+  "system_a": "../.runtime/classics-v5.2-smoke-100-20261027/current-systems/ccba.json",
+  "system_b": "../.runtime/classics-v5.2-smoke-100-20261027/current-systems/prec.json",
+  "migration_manifest": "../.runtime/classics-v5.2-smoke-100-20261027/current-systems/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-prec-translation-current-smoke-100-20261027",
+  "bootstrap_seed": 2026102721,
+  "bootstrap_resamples": 2000
+}

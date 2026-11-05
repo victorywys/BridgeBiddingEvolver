@@ -1,0 +1,29 @@
+{
+  "name": "E004 Astra 持续迭代：原创v1与双基线重构",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "baselines": [
+    "systems/classics-v5.5.3-compact/ccba.json",
+    "systems/classics-v5.5.3-compact/prec.json"
+  ],
+  "origins": ["existing", "blank"],
+  "champion_seed_run": "evo-fc022c1dfb5e4b60bd8e4f8689c26452",
+  "generations": 3,
+  "research_task": "继续已发布的原创体系以及CCBA/精确起点的全体系研究，不要重建已经通过测试的同一成果。以平均配对IMP为唯一适应度，重点诊断与改善当前失分、竞争和干扰后的消极退出、未覆盖的自然fallback和满贯探索。允许整体重构叫品含义、开叫结构、公开协议和后续。先查继承的完整体系和回归案例，保留其有效性，生成边界/反例并实际运行断言、调试、真实DDS探索，必要时讨论。关键改动必须验证实际改变了自然到达的叫牌行为；失败后继续修复，不把一副DDS最好定约当作必须叫品。每个研究会话适时发布完整可运行候选，再继续替代方案；不要用完所有轮数才尝试发布。每次重要假设、试验结论和局限以简洁中文research_note记录。晋级由外层独立新牌确认，未提升或覆盖不足如实保留。",
+  "workers": 2,
+  "max_agent_requests": 576,
+  "max_agent_tokens": 12000000,
+  "max_output_tokens": 32768,
+  "max_research_turns": 48,
+  "max_tool_calls": 256,
+  "max_releases": 3,
+  "max_lab_boards": 512,
+  "research_seconds": 2400,
+  "max_pairs": 200000,
+  "max_seconds": 21600,
+  "max_promotions": 10,
+  "plateau_limit": 0,
+  "automatic_goal_check": false
+}

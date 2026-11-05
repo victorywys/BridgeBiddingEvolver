@@ -1,0 +1,254 @@
+{
+  "schema_version": 2,
+  "operator_version": 2,
+  "name": "v2底座演示：参数化高花配合与关键张（非经典体系）",
+  "scope": "general",
+  "features": {
+    "keycards": {"op": "keycards", "args": [{"op": "var", "name": "trump"}]},
+    "trump_queen": {"op": "honors", "suit": {"op": "var", "name": "trump"}, "ranks": "Q"}
+  },
+  "protocol": {
+    "initial": "idle",
+    "parameters": {
+      "suit": {"type": "string", "initial": "", "values": ["", "C", "D", "H", "S"]},
+      "trump": {"type": "string", "initial": "", "values": ["", "C", "D", "H", "S"]},
+      "anchor": {"type": "string", "initial": ""},
+      "asker": {"type": "string", "initial": "", "values": ["", "N", "E", "S", "W"]}
+    },
+    "states": {
+      "idle": {
+        "transitions": [{
+          "id": "major_opened",
+          "when": {"op": "and", "args": [
+            {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+            {"op": "not", "args": [{"op": "has_contract_bid"}]},
+            {"op": "eq", "args": [{"op": "context", "name": "event.level"}, 1]},
+            {"op": "in", "args": [{"op": "context", "name": "event.strain"}, ["H", "S"]]}
+          ]},
+          "to": "opened",
+          "set": {"suit": {"op": "context", "name": "event.strain"}}
+        }],
+        "otherwise": "idle"
+      },
+      "opened": {
+        "transitions": [
+          {
+            "id": "forcing_raise",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+              {"op": "eq", "args": [{"op": "context", "name": "event.actor"}, {"op": "context", "name": "our_responder"}]},
+              {"op": "eq", "args": [{"op": "context", "name": "event.strain"}, {"op": "var", "name": "suit"}]},
+              {"op": "eq", "args": [{"op": "context", "name": "event.level"}, 3]}
+            ]},
+            "to": "fitted",
+            "set": {"trump": {"op": "var", "name": "suit"}},
+            "forcing": "game"
+          },
+          {
+            "id": "interference_before_fit",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "opponents"]},
+              {"op": "ne", "args": [{"op": "context", "name": "event.kind"}, "P"]}
+            ]},
+            "to": "outside", "set": {}, "forcing": "none"
+          }
+        ],
+        "otherwise": "opened"
+      },
+      "fitted": {
+        "transitions": [
+          {
+            "id": "keycard_question",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+              {"op": "eq", "args": [{"op": "context", "name": "event.call"}, "4NT"]}
+            ]},
+            "to": "keycards",
+            "set": {
+              "anchor": {"op": "context", "name": "event.call"},
+              "asker": {"op": "context", "name": "event.actor"}
+            },
+            "forcing": "one_round"
+          },
+          {
+            "id": "game_selected",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+              {"op": "eq", "args": [{"op": "context", "name": "event.strain"}, {"op": "var", "name": "trump"}]},
+              {"op": "ge", "args": [{"op": "context", "name": "event.level"}, 4]}
+            ]},
+            "to": "finished", "set": {}, "forcing": "none"
+          },
+          {
+            "id": "interference_after_fit",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "opponents"]},
+              {"op": "ne", "args": [{"op": "context", "name": "event.kind"}, "P"]}
+            ]},
+            "to": "outside", "set": {}, "forcing": "none"
+          }
+        ],
+        "otherwise": "fitted"
+      },
+      "keycards": {
+        "transitions": [
+          {
+            "id": "keycards_answered",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+              {"op": "ne", "args": [{"op": "context", "name": "event.actor"}, {"op": "var", "name": "asker"}]},
+              {"op": "in", "args": [{"op": "context", "name": "event.call"}, ["5C", "5D", "5H", "5S"]]}
+            ]},
+            "to": "answered", "set": {}
+          },
+          {
+            "id": "interference_during_question",
+            "when": {"op": "and", "args": [
+              {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "opponents"]},
+              {"op": "ne", "args": [{"op": "context", "name": "event.kind"}, "P"]}
+            ]},
+            "to": "outside", "set": {}, "forcing": "none"
+          }
+        ],
+        "otherwise": "keycards"
+      },
+      "answered": {
+        "transitions": [{
+          "id": "slam_selected",
+          "when": {"op": "and", "args": [
+            {"op": "eq", "args": [{"op": "context", "name": "event.by"}, "ours"]},
+            {"op": "eq", "args": [{"op": "context", "name": "event.strain"}, {"op": "var", "name": "trump"}]},
+            {"op": "eq", "args": [{"op": "context", "name": "event.level"}, 6]}
+          ]},
+          "to": "finished", "set": {}
+        }],
+        "otherwise": "answered"
+      },
+      "outside": {"transitions": [], "otherwise": "outside"},
+      "finished": {"transitions": [], "otherwise": "finished"}
+    }
+  },
+  "announcements": [
+    {
+      "id": "natural_major",
+      "when": {"op": "and", "args": [
+        {"op": "not", "args": [{"op": "has_contract_bid"}]},
+        {"op": "eq", "args": [{"op": "context", "name": "event.level"}, 1]},
+        {"op": "in", "args": [{"op": "context", "name": "event.strain"}, ["H", "S"]]}
+      ]},
+      "tags": ["natural", "five_card_major"],
+      "suit": {"op": "context", "name": "event.strain"}
+    },
+    {
+      "id": "weak_nt_opening",
+      "when": {"op": "and", "args": [
+        {"op": "not", "args": [{"op": "has_contract_bid"}]},
+        {"op": "eq", "args": [{"op": "context", "name": "event.call"}, "1NT"]}
+      ]},
+      "tags": ["natural", "weak_nt"]
+    },
+    {
+      "id": "artificial_question",
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "fitted"]},
+        {"op": "eq", "args": [{"op": "context", "name": "event.call"}, "4NT"]}
+      ]},
+      "tags": ["artificial", "keycard_ask"]
+    }
+  ],
+  "rules": [
+    {
+      "id": "open_weak_nt", "priority": 100,
+      "when": {"op": "and", "args": [
+        {"op": "not", "args": [{"op": "has_contract_bid"}]},
+        {"op": "between", "args": [{"op": "hcp"}, 13, 15]},
+        {"op": "balanced"}
+      ]},
+      "action": {"kind": "call", "call": "1NT"}
+    },
+    {
+      "id": "open_hearts", "priority": 90,
+      "when": {"op": "and", "args": [
+        {"op": "not", "args": [{"op": "has_contract_bid"}]},
+        {"op": "ge", "args": [{"op": "hcp"}, 12]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, 5]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, {"op": "length", "suit": "S"}]}
+      ]},
+      "action": {"kind": "bid", "level": 1, "strain": "H"}
+    },
+    {
+      "id": "open_spades", "priority": 90,
+      "when": {"op": "and", "args": [
+        {"op": "not", "args": [{"op": "has_contract_bid"}]},
+        {"op": "ge", "args": [{"op": "hcp"}, 12]},
+        {"op": "ge", "args": [{"op": "length", "suit": "S"}, 5]},
+        {"op": "gt", "args": [{"op": "length", "suit": "S"}, {"op": "length", "suit": "H"}]}
+      ]},
+      "action": {"kind": "bid", "level": 1, "strain": "S"}
+    },
+    {
+      "id": "forcing_support", "priority": 80,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "opened"]},
+        {"op": "eq", "args": [{"op": "seat"}, {"op": "context", "name": "our_responder"}]},
+        {"op": "ge", "args": [{"op": "hcp"}, 13]},
+        {"op": "ge", "args": [{"op": "length", "suit": {"op": "var", "name": "suit"}}, 3]}
+      ]},
+      "action": {"kind": "bid", "level": 3, "strain": {"op": "var", "name": "suit"}}
+    },
+    {
+      "id": "ask_keycards", "priority": 70,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "fitted"]},
+        {"op": "eq", "args": [{"op": "seat"}, {"op": "context", "name": "our_opener"}]},
+        {"op": "ge", "args": [{"op": "hcp"}, 17]}
+      ]},
+      "action": {"kind": "call", "call": "4NT"}
+    },
+    {
+      "id": "select_game", "priority": 60,
+      "when": {"op": "eq", "args": [{"op": "state"}, "fitted"]},
+      "action": {"kind": "bid", "level": 4, "strain": {"op": "var", "name": "trump"}}
+    },
+    {
+      "id": "keycards_14", "priority": 60,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "keycards"]},
+        {"op": "in", "args": [{"op": "ref", "name": "keycards"}, [1, 4]]}
+      ]},
+      "action": {"kind": "step", "after": {"op": "var", "name": "anchor"}, "count": 1}
+    },
+    {
+      "id": "keycards_03", "priority": 60,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "keycards"]},
+        {"op": "in", "args": [{"op": "ref", "name": "keycards"}, [0, 3]]}
+      ]},
+      "action": {"kind": "step", "after": {"op": "var", "name": "anchor"}, "count": 2}
+    },
+    {
+      "id": "keycards_25_without_queen", "priority": 60,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "keycards"]},
+        {"op": "in", "args": [{"op": "ref", "name": "keycards"}, [2, 5]]},
+        {"op": "eq", "args": [{"op": "ref", "name": "trump_queen"}, 0]}
+      ]},
+      "action": {"kind": "step", "after": {"op": "var", "name": "anchor"}, "count": 3}
+    },
+    {
+      "id": "keycards_25_with_queen", "priority": 60,
+      "when": {"op": "and", "args": [
+        {"op": "eq", "args": [{"op": "state"}, "keycards"]},
+        {"op": "in", "args": [{"op": "ref", "name": "keycards"}, [2, 5]]},
+        {"op": "eq", "args": [{"op": "ref", "name": "trump_queen"}, 1]}
+      ]},
+      "action": {"kind": "step", "after": {"op": "var", "name": "anchor"}, "count": 4}
+    },
+    {
+      "id": "demonstrate_slam_exit", "priority": 50,
+      "when": {"op": "eq", "args": [{"op": "state"}, "answered"]},
+      "action": {"kind": "bid", "level": 6, "strain": {"op": "var", "name": "trump"}}
+    }
+  ],
+  "fallback": {"kind": "call", "call": "P"}
+}

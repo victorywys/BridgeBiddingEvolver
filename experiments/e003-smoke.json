@@ -1,0 +1,22 @@
+{
+  "name": "E003 Astra 空白起点研究验证",
+  "profile": "smoke",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "origins": ["blank"],
+  "generations": 1,
+  "research_task": "从空白骨架设计一套小型但完整可执行的原创研究体系，至少同时实现开叫、应叫和后续协议，所有其他场景有明确fallback。自主阅读实际语法，生成边界牌，编写并运行测试，遇到错误继续修复，完成至少一次真实DDS trial和一次独立consult，再发布完整候选。至少一项changed_from_parent测试应验证多轮叫牌的新行为。可以采用传统结构或自创编码；不要求本次就找到最强体系，不得把局部小样本说成万副提升。",
+  "workers": 2,
+  "max_research_turns": 48,
+  "max_agent_requests": 64,
+  "max_agent_tokens": 8000000,
+  "max_output_tokens": 32768,
+  "max_tool_calls": 128,
+  "max_releases": 2,
+  "max_lab_boards": 96,
+  "research_seconds": 1800,
+  "max_pairs": 10000,
+  "max_seconds": 3600,
+  "automatic_goal_check": false
+}

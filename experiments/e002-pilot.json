@@ -1,0 +1,23 @@
+{
+  "name": "E002 Agent fresh-deal pilot",
+  "profile": "pilot",
+  "baselines": [
+    "systems/classics-v5.5.3-compact/ccba.json",
+    "systems/classics-v5.5.3-compact/prec.json"
+  ],
+  "source": "agent",
+  "model": "gpt-6-astra",
+  "workers": 2,
+  "generations": 3,
+  "modules": ["quantitative", "invite", "nt.", "slam_controls"],
+  "max_agent_requests": 24,
+  "max_pairs": 50000,
+  "max_seconds": 21600,
+  "max_promotions": 10,
+  "min_promotion_delta": 0.05,
+  "max_opponent_regression": 0.05,
+  "promotion_alpha": 0.05,
+  "goal_alpha": 0.05,
+  "goal_delta": 0.2,
+  "automatic_goal_check": false
+}

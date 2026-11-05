@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "operator_version": 2,
+  "name": "通用调度对照：始终Pass",
+  "scope": "general",
+  "features": {},
+  "protocol": {
+    "initial": "idle",
+    "parameters": {},
+    "states": {"idle": {"transitions": [], "otherwise": "idle"}}
+  },
+  "announcements": [],
+  "rules": [],
+  "fallback": {"kind": "call", "call": "P"}
+}

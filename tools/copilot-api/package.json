@@ -1,0 +1,21 @@
+{
+  "name": "bridge-evolve-copilot-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated Copilot API gateway tooling for Bridge Bidding Evolution.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "cli": "env -u COPILOT_API_GITHUB_TOKEN -u GITHUB_TOKEN -u GH_TOKEN -u COPILOT_API_OAUTH_APP -u COPILOT_API_ENTERPRISE_URL copilot-api --api-home=../../.runtime/copilot-api",
+    "setup": "node prepare.mjs",
+    "smoke": "cd ../.. && .venv/bin/python tools/copilot-api/smoke.py",
+    "auth": "npm run cli -- auth login --provider copilot",
+    "test": "node --test prepare.test.mjs",
+    "start": "npm run cli -- start --host 127.0.0.1 --port 4141"
+  },
+  "dependencies": {
+    "@jeffreycao/copilot-api": "2.7.35",
+    "@openai/codex": "0.164.0"
+  }
+}

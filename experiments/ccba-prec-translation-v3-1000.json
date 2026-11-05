@@ -1,0 +1,11 @@
+{
+  "experiment_id": "ccba-prec-translation-v3.0-1000-frozen",
+  "dataset": "../datasets/ccba-prec-translation-v3-test-1000/manifest.json",
+  "system_a": "../systems/classics-v3/ccba.json",
+  "system_b": "../systems/classics-v3/prec.json",
+  "migration_manifest": "../systems/classics-v3/migration.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-prec-translation-v3-1000",
+  "bootstrap_seed": 2026102620,
+  "bootstrap_resamples": 2000
+}

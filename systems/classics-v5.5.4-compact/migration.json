@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "profile_version": "translation-v5.5.4",
+  "status": "executable-manual-protocols-with-explicit-assumptions-not-formally-equivalent",
+  "source_sha256": {
+    "ccba": "f0830fca5d16e994e91f9e910b6a55bee9a910d9cd58385a7af6260b5d93f8b9",
+    "prec": "130cb74d34a16117ce7df1e82d9a7963b752f945d815bfa793d9375986f7633d"
+  },
+  "source_documents_verified": false,
+  "source_versions": {
+    "ccba": "2.2 (2019-10)",
+    "prec": "1.1.1 (2021-01)"
+  },
+  "systems": {
+    "ccba": "7d742eafde2b64669f73b6359802827222d75b9a8a9db328d182bdc83e6ecbd1",
+    "prec": "17941698f210217b1d9ad601791d8dd4fa45b0609d03d36bb5504459615d5ddc"
+  },
+  "translation_manifest": "translation.json",
+  "translation_sha256": "9a1183db4dc1228d01bfb9e9648a1377d6c10fd8f376e87fc18c80621ec9ab95",
+  "precedence": "正文优先于附录；具体协议优先于通用自然续叫；同一条件重叠按导出的IR优先级。",
+  "implemented": [
+    "CCBA自然低花/五张高花，正文11点高花和第三家轻开；精确强梅花/短方片/2C/2D开叫",
+    "CCBA15-17与精确13-15无将及不同应叫；强梅花示弱后强无将使用自然转移而非弱无将约定",
+    "第一应叫、Walsh高花优先、二盖一、反加叫、Bergen、Jacoby、passed-hand Drury",
+    "强梅花示弱/自然正应叫/4441问点力、1C-1NT的六级支持问叫与点力询问",
+    "Stayman、Jacoby/Texas高花转移、低花转移、2NT傀儡高花询问",
+    "弱二Ogust、赌博3NT修正、自然邀局/选局、定量无将满贯",
+    "双路重询、精确XYZ、第四花色逼局、逆叫弱牌出口与加叫后2NT询问",
+    "Mini-Splinter/Splinter、Bergen、Jacoby高低限、帮张邀请和逆朱瑞回答",
+    "精确4333与44牌型接力、2C-2D及2D-3D问叫、Smolen和低花斯台曼",
+    "Gerber、1430关键张、后续问Q/问K、缺门关键张及明确满贯/退路",
+    "Michaels、特殊2NT、Landy、马歇、跳迈克尔斯、莱本索尔和被加倍后的逃叫",
+    "自然争叫、技术性/否定性加倍及应叫、无将争叫、实力再加倍"
+  ],
+  "compressed_or_replaced": [
+    "罕见的多轮干扰、部分控制扣叫和未展开的终局选择使用明示自然续叫，不声称逐条形式等价",
+    "原文模糊词和缺门关键张冲突采用translation.json中的暂定、可复现评估口径",
+    "首攻和打牌信号完全排除在叫牌实验之外"
+  ],
+  "deterministic_definitions": {
+    "good_suit": "至少5张且AKQ中至少两张；坚固套至少6张且含AKQ。",
+    "stopper": "A，或Kx及以上，或Qxx及以上，或JTxx及以上。",
+    "playing_tricks2": "半墩单位：AKQ计2×套长；AK计4+max(长度-4,0)；AQ计3+max(长度-4,0)；单A计2；Kx及以上计1；其余0。各套相加，不是DDS。",
+    "natural_targets": "承诺高花/3NT仍用25点下界、低花29；邀局改看可达25的上界与23中值/本人额外价值，逼局先保留已知配合和满贯试探空间。详细公式见translation.json与IR。",
+    "partnership_bounds": "公开账本单调保留双方HCP和各套长度下界；人工花色不等于所持花色；联手下界和当前牌手的私有估计分开记录。",
+    "calling_goals": "none/one_round/invite_game/game/slam_try/small_slam/invite_grand/grand_slam；高承诺不会被一轮回答或较低声明清除。",
+    "partner_ranges": "只由公开叫品/阶段确定，不读取搭档私牌；不确定的0/3、1/4关键张以较低值处理。",
+    "hcp_upper_bounds": "开叫/应叫上界与开叫前Pass上界取交集；没有保证的上限保持未知40。本人私有估计记录上下界，不把上界或区间中值当成保证可成局。",
+    "suit_ties": "普通等长依S,H,D,C；4-4高花首次应叫优先H，5-5优先S。",
+    "fallback": "根兜底为error；各阶段停止均为明示自然停止规则，不把非法或未定义动作修成Pass。"
+  },
+  "interpretation": "成绩仅适用于这些带明示推断的可执行翻译版本；不代表原版人类搭档实力，也未证明逐条无损移植。",
+  "validation_history": {
+    "prior_attempt": "results/ccba-prec-1000-v1/run.json",
+    "status": "invalid run stopped at board 608; no ranking or summary was published",
+    "correction": "Gambling 3NT pass-or-correct now has a dedicated 4C/4D protocol instead of the generic low-level rebid path.",
+    "data_policy": "The original 1000-board test is consumed for debugging; final conclusions require a new 1000-board holdout."
+  },
+  "representation": {
+    "kind": "shared-expressions-v1",
+    "language": "existing-v2-features-ref",
+    "source_systems": {
+      "ccba": "750e085b79f55e76b544eab838a72f1d35e5ecf8b3c2af8781ca1638280b12df",
+      "prec": "968684d47b702c86c1c955f798c8774f962adf2386096585e6f4eeae9883d179"
+    },
+    "added_features": {
+      "ccba": 2481,
+      "prec": 2689
+    },
+    "verification": "Expanding the added references restores the exact original system data.",
+    "layout": "two-space structural indentation; short expressions inline"
+  }
+}
