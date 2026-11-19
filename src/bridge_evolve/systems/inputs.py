@@ -14,6 +14,7 @@ from bridge_evolve.systems.runtime import (
     BALANCED_SHAPES, Decision, Observation, decide, hand_hcp, hand_shape,
 )
 from bridge_evolve.systems.shape_bounds import SUITS, shape_range, suit_constraints
+from bridge_evolve.systems.external import ExternalPolicy, OPAQUE_MEANING, Player, render_player
 
 
 def parse_hand(value: object) -> Hand:
@@ -32,7 +33,7 @@ def parse_hand(value: object) -> Hand:
 
 def parse_observation(value: object) -> Observation:
     fields = object_fields(
-        value, {"hand", "seat", "dealer", "vulnerability", "history"}, {"public_systems", "public_definitions"},
+        value, {"hand", "seat", "dealer", "vulnerability", "history"}, {"public_systems", "public_definitions", "opaque_sides"},
     )
     history = fields["history"]
     public = fields.get("public_systems", [])
@@ -41,11 +42,14 @@ def parse_observation(value: object) -> Observation:
     definitions = fields.get("public_definitions", {})
     if not isinstance(definitions, dict) or any(side not in ("NS", "EW") for side in definitions):
         raise SystemError("public_definitions must map NS/EW to static system IR objects.")
+    if not isinstance(fields.get("opaque_sides", []), list):
+        raise SystemError("opaque_sides must be a list of explicitly disclosed black-box sides.")
     return Observation(
         parse_hand(fields["hand"]), Seat(text(fields["seat"])), Seat(text(fields["dealer"])),
         Vulnerability(text(fields["vulnerability"])), tuple(parse_call(call) for call in history),
         tuple(text(spec) for spec in public),
         tuple((side, validate_system(raw)) for side, raw in definitions.items()),
+        tuple(fields.get("opaque_sides", [])),
     )
 
 
@@ -140,7 +144,7 @@ def parse_prefix(value: object) -> tuple[Call, ...]:
 
 
 def run_auction(
-    ns: SystemDefinition, ew: SystemDefinition, board: Board,
+    ns: Player, ew: Player, board: Board,
     *, prefix: tuple[Call, ...] = (), trace: bool = False, compact: bool = False,
 ) -> dict[str, object]:
     from bridge_evolve.systems.runtime import _decide_and_advance
@@ -149,14 +153,16 @@ def run_auction(
         raise SystemError("General auctions require two scope=general systems; local experiments remain separate.")
     if not isinstance(prefix, tuple):
         raise SystemError("Auction prefix must be immutable.")
-    definitions = {"NS": ns, "EW": ew}
-    public = tuple(render_system(system) for system in (ns, ew))
-    world = PublicWorld(definitions, board.dealer, board.vulnerability)
+    players = {"NS": ns, "EW": ew}
+    definitions = {side: player for side, player in players.items() if isinstance(player, SystemDefinition)}
+    opaque = tuple(side for side in players if side not in definitions)
+    public = tuple(render_player(system) for system in (ns, ew))
+    world = PublicWorld(definitions, board.dealer, board.vulnerability, opaque_sides=opaque)
     entries: list[dict[str, object]] = []
 
     def record_after(entry: dict, seat: Seat) -> None:
         side = seat.partnership.value
-        if trace and "captain_S_max" in world.frames[side].parameters:
+        if trace and side in world.frames and "captain_S_max" in world.frames[side].parameters:
             entry["public_context_after"] = protocol_record(PublicContext(world, side, seat).snapshot())
 
     for call in prefix:
@@ -164,16 +170,27 @@ def run_auction(
         world.step(call)
         entries.append({
             "seat": seat.value, "call": str(call), "source": "prefix",
-            "public_meaning": render_call(definitions[seat.partnership.value], call),
+            "public_meaning": (render_call(definitions[seat.partnership.value], call)
+                               if seat.partnership.value in definitions else OPAQUE_MEANING),
         })
         record_after(entries[-1], seat)
     while not world.auction.ended:
         seat = world.auction.next_seat
-        system = definitions[seat.partnership.value]
+        system = players[seat.partnership.value]
         observation = Observation(
             board.deal.hand(seat), seat, board.dealer, board.vulnerability,
-            world.auction.calls, public, tuple(definitions.items()),
+            world.auction.calls, public, tuple(definitions.items()), opaque,
         )
+        if isinstance(system, ExternalPolicy):
+            call, inference = system.decide(observation)
+            world.step(call)
+            entry = {"system_hash": system.content_hash, "seat": seat.value, "call": str(call),
+                     "state": "external", "source": "external", "public_meaning": OPAQUE_MEANING,
+                     "explanation_available": False}
+            if trace:
+                entry["private_trace"] = {"rule_id": "external:" + system.data["family"], "inference": inference}
+            entries.append(entry)
+            continue
         try:
             decision = _decide_and_advance(system, observation, world)
         except SystemError as error:

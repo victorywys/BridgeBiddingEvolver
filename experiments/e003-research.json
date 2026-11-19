@@ -5,8 +5,8 @@
   "model": "gpt-6-astra",
   "reasoning_effort": "high",
   "baselines": [
-    "systems/classics-v5.5.4-compact/ccba.json",
-    "systems/classics-v5.5.4-compact/prec.json"
+    "systems/classics-v5.5.5-compact/ccba.json",
+    "systems/classics-v5.5.5-compact/prec.json"
   ],
   "origins": ["existing", "blank"],
   "research_task": "以成绩为唯一适应度，研究更强、更完整的搭档叫牌协议。允许大幅重写或原创开叫、应叫、竞争、控制和接力结构，并细化全部fallback；自主生成边界牌、编写实际测试、调试、讨论、迭代后提交完整体系。不要只提出单叫阈值补丁。",

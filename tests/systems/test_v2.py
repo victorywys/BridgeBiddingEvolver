@@ -1,3 +1,4 @@
+import copy
 import json
 import unittest
 from dataclasses import replace
@@ -66,6 +67,49 @@ def obs(system, history=(), seat=None, hand="AKQ.KT9.KQ32.876", vulnerability=Vu
 
 
 class V2ValidationTests(unittest.TestCase):
+    def test_validation_errors_locate_real_nodes_and_fields_with_escaped_pointers(self):
+        raw = raw_system()
+        raw["protocol"]["parameters"]["p/~"] = {"type": "string", "initial": ""}
+        raw["rules"] = [rule(True, {"kind": "call", "call": "1C"})]
+        raw["announcements"] = [{"id": "public", "when": True, "tags": ["natural"]}]
+        for parts, invalid in (
+            (("rules", 0, "id"), ""),
+            (("rules", 0, "priority"), True),
+            (("rules", 0, "when"), {"op": "hcp"}),
+            (("rules", 0, "action", "kind"), ""),
+            (("rules", 0, "action", "call"), ""),
+            (("protocol", "states", "idle", "on"), {}),
+            (("protocol", "states", "idle", "otherwise"), ""),
+            (("protocol", "parameters", "p/~", "type"), ""),
+            (("announcements", 0, "tags", 0), ""),
+            (("fallback", "call"), ""),
+        ):
+            changed = copy.deepcopy(raw)
+            parent = changed
+            for part in parts[:-1]:
+                parent = parent[part]
+            parent[parts[-1]] = invalid
+            pointer = "".join("/" + str(part).replace("~", "~0").replace("/", "~1") for part in parts)
+            with self.subTest(pointer=pointer), self.assertRaises(SystemError) as caught:
+                validate_system(changed)
+            self.assertEqual(caught.exception.pointer, pointer)
+            self.assertIn(pointer, str(caught.exception))
+
+    def test_expression_and_assignment_errors_retain_their_source_instead_of_an_outer_rule(self):
+        raw = raw_system()
+        raw["features"]["bad/~"] = {"op": "missing"}
+        raw["rules"] = [rule({"op": "ref", "name": "bad/~"}, {"kind": "call", "call": "1C"})]
+        with self.assertRaises(SystemError) as caught:
+            validate_system(raw)
+        self.assertEqual(caught.exception.pointer, "/features/bad~1~0")
+        raw["features"] = {}
+        raw["rules"] = []
+        raw["protocol"]["parameters"]["shown"] = {"type": "number", "initial": 0}
+        raw["protocol"]["states"]["idle"]["transitions"] = [transition("bad_set", True, set={"shown": {"op": "hcp"}})]
+        with self.assertRaises(SystemError) as caught:
+            validate_system(raw)
+        self.assertEqual(caught.exception.pointer, "/protocol/states/idle/transitions/0/set/shown")
+
     def test_impossible_public_hcp_interval_is_an_explicit_error(self):
         raw = raw_system()
         raw["protocol"]["parameters"] = {"captain_hcp_min": {"type": "number", "initial": 11},

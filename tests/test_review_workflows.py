@@ -79,6 +79,14 @@ class SamplingTests(unittest.TestCase):
             with self.subTest(updates=updates), self.assertRaises(ValueError):
                 self.config(**updates)
 
+    def test_large_research_sampling_does_not_widen_public_audit_limits(self):
+        payload = {"count": 1001, "seed": 0, "attempt_limit": 1000001}
+        config = viewer.sampling_config(payload, max_count=100000)
+        self.assertEqual(config["count"], 1001)
+        self.assertEqual(config["attempt_limit"], 1000001)
+        with self.assertRaises(ValueError):
+            viewer.sampling_config({**payload, "count": 1})
+
     def test_exhaustion_and_cancellation_never_relax_constraints(self):
         config = self.config(count=1, attempt_limit=3, constraints={"N": {"hcp": [11, 40]}})
         with patch.object(viewer.random.Random, "shuffle", return_value=None):

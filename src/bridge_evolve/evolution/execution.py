@@ -20,10 +20,12 @@ from pathlib import Path
 
 from bridge_evolve.evaluation.data import canonical_hash, deal_hash, generate_dataset, load_dataset, board_data
 from bridge_evolve.evaluation.record_log import RecordWriter, decode_records, encode_records, iter_records
+from bridge_evolve.evaluation.experiment import timestamp
 from bridge_evolve.oracle import DDSAdapter
 from bridge_evolve.systems import load_system
 from bridge_evolve.systems.inputs import parse_board
 from bridge_evolve.evolution.config import ROOT, engine_identity, save_json
+from bridge_evolve.evolution.faults import adjudicate_baseline
 
 _worker_engine = None
 _worker_systems = None
@@ -55,7 +57,7 @@ def initialize_worker(project: str, systems: str):
     _worker_systems = systems
 
 
-def evaluate_pair(task: tuple) -> dict:
+def evaluate_pair(task: tuple, baseline_fault_policy="strict") -> dict:
     if _worker_engine is None or _worker_systems is None:
         raise RuntimeError("Evolution worker is not initialized.")
     candidate, opponent, raw, count = task
@@ -70,7 +72,7 @@ def evaluate_pair(task: tuple) -> dict:
         step = table["auction"][finding["turn"]]
         finding.update(actor=step["seat"], system_hash=step["system_hash"])
     record["audit_result"]["findings"] = findings
-    return record
+    return adjudicate_baseline(record, candidate, opponent, baseline_fault_policy)
 
 
 class EvolutionStopped(RuntimeError):
@@ -110,10 +112,13 @@ class Evaluator:
     def __init__(self, directory: Path, config: dict, state: dict, checkpoint, stop):
         self.directory, self.config, self.state = directory, config, state
         self.checkpoint, self.stop = checkpoint, stop
+        self.incident_callback = None
         self.connection = sqlite3.connect(directory / "cache.sqlite")
         self.connection.execute("CREATE TABLE IF NOT EXISTS pairs (key TEXT PRIMARY KEY, body BLOB NOT NULL, sha256 TEXT NOT NULL)")
         self.connection.execute("CREATE TABLE IF NOT EXISTS families (family TEXT PRIMARY KEY, round_id TEXT NOT NULL)")
         self.connection.execute("CREATE TABLE IF NOT EXISTS usage (name TEXT PRIMARY KEY, count INTEGER NOT NULL)")
+        self.connection.execute("CREATE TABLE IF NOT EXISTS pair_reservations (key TEXT PRIMARY KEY, evaluation TEXT)")
+        self.connection.execute("CREATE TABLE IF NOT EXISTS evaluation_holds (id TEXT PRIMARY KEY, total INTEGER NOT NULL, remaining INTEGER NOT NULL)")
         self.connection.execute("INSERT OR IGNORE INTO usage VALUES ('pairs',?)", (state["evaluated_pairs"],))
         self.connection.commit()
         state["evaluated_pairs"] = self.connection.execute("SELECT count FROM usage WHERE name='pairs'").fetchone()[0]
@@ -123,17 +128,55 @@ class Evaluator:
             raise ValueError("The frozen DDS provenance changed; do not mix solver versions.")
         state["oracle"] = oracle
         self.oracle_hash = canonical_hash(oracle)
+        self.active_reservation = None
 
     def close(self):
         self.connection.close()
 
-    def reserve_pair(self):
-        reserved = self.connection.execute(
-            "UPDATE usage SET count=count+1 WHERE name='pairs' AND count < ?", (self.config["max_pairs"],))
-        self.connection.commit()
-        if reserved.rowcount != 1:
-            raise EvolutionStopped("Paired evaluation budget exhausted.")
-        self.state["evaluated_pairs"] += 1
+    def reserve_evaluation(self, identity, pairs):
+        with self.connection:
+            self.connection.execute("BEGIN IMMEDIATE")
+            known = self.connection.execute("SELECT total FROM evaluation_holds WHERE id=?", (identity,)).fetchone()
+            if known is not None:
+                if known[0] != pairs:
+                    raise ValueError("Evaluation reservation differs from its frozen allocation.")
+                return
+            used = self.connection.execute("SELECT count FROM usage WHERE name='pairs'").fetchone()[0]
+            held = self.connection.execute("SELECT COALESCE(SUM(remaining),0) FROM evaluation_holds").fetchone()[0]
+            if used + held + pairs > self.config["max_pairs"]:
+                raise EvolutionStopped("Insufficient unreserved paired budget for candidate evaluation.")
+            self.connection.execute("INSERT INTO evaluation_holds VALUES (?,?,?)", (identity, pairs, pairs))
+
+    def release_evaluation(self, identity):
+        with self.connection:
+            self.connection.execute("UPDATE evaluation_holds SET remaining=0 WHERE id=?", (identity,))
+
+    def remaining_evaluation_pairs(self, identity):
+        row = self.connection.execute("SELECT remaining FROM evaluation_holds WHERE id=?", (identity,)).fetchone()
+        return row[0] if row is not None else 0
+
+    def reserve_pair(self, key=None):
+        key = key or "diagnostic-" + str(random.SystemRandom().getrandbits(128))
+        with self.connection:
+            self.connection.execute("BEGIN IMMEDIATE")
+            if self.connection.execute("SELECT 1 FROM pair_reservations WHERE key=?", (key,)).fetchone() is not None:
+                return False
+            used = self.connection.execute("SELECT count FROM usage WHERE name='pairs'").fetchone()[0]
+            held = self.connection.execute("SELECT COALESCE(SUM(remaining),0) FROM evaluation_holds").fetchone()[0]
+            if self.active_reservation is not None:
+                released = self.connection.execute(
+                    "UPDATE evaluation_holds SET remaining=remaining-1 WHERE id=? AND remaining>0",
+                    (self.active_reservation,))
+                if released.rowcount != 1:
+                    raise EvolutionStopped("The candidate's reserved paired evaluation budget is exhausted.")
+            elif used + held >= self.config["max_pairs"]:
+                raise EvolutionStopped("Paired evaluation budget exhausted; queued candidate reservations are protected.")
+            if used >= self.config["max_pairs"]:
+                raise EvolutionStopped("Paired evaluation budget exhausted.")
+            self.connection.execute("INSERT INTO pair_reservations VALUES (?,?)", (key, self.active_reservation))
+            self.connection.execute("UPDATE usage SET count=count+1 WHERE name='pairs'")
+        self.state["evaluated_pairs"] = used + 1
+        return True
 
     def _seed(self, identity: str) -> int:
         known = {round["seed"] for round in self.state["rounds"].values()}
@@ -145,14 +188,25 @@ class Evaluator:
             value = (value + 1) % 2**53
         return value
 
-    def _round_data(self, identity: str, systems: list[str], count: int) -> tuple[dict, list]:
+    def _round_data(self, identity: str, systems: list[str], count: int, *, sampling=None) -> tuple[dict, list]:
         saved = self.state["rounds"].get(identity)
         if saved is None:
-            saved = {"id": identity, "systems": systems, "boards": count, "seed": self._seed(identity), "status": "preparing"}
+            saved = {"id": identity, "systems": systems, "boards": count, "seed": self._seed(identity), "status": "preparing",
+                     "baseline_fault_policy": self.config.get("baseline_fault_policy", "strict")}
             self.state["rounds"][identity] = saved
             self.checkpoint()
         if saved["systems"] != systems or saved["boards"] != count:
             raise ValueError("Resume round differs from its frozen candidates or board count.")
+        if saved.get("baseline_fault_policy", "strict") != self.config.get("baseline_fault_policy", "strict"):
+            raise ValueError("Resume round differs from its frozen baseline scoring policy.")
+        sampling = self.config.get("development_sampling") if sampling is None else sampling
+        if (saved.get("sampling_hash") is not None) != (sampling is not None) and "dataset" in saved:
+            raise ValueError("Resume round differs from its frozen sampling distribution.")
+        if sampling is not None:
+            sampling_hash = canonical_hash(sampling)
+            if saved.get("sampling_hash", sampling_hash) != sampling_hash:
+                raise ValueError("Resume round differs from its frozen conditional cohort.")
+            saved.update(sampling_hash=sampling_hash, evaluation_scope="conditional")
         if "dataset" not in saved:
             parent = self.directory / "rounds" / identity
             parent.mkdir(parents=True, exist_ok=True)
@@ -161,14 +215,29 @@ class Evaluator:
             while target.exists() and not (target / "manifest.json").is_file():
                 attempt += 1
                 target = parent / f"draw-{attempt}"
-            manifest = target / "manifest.json" if (target / "manifest.json").is_file() else generate_dataset(
-                target, count=count, seed=saved["seed"], split="validation",
-            )
+            if (target / "manifest.json").is_file():
+                manifest = target / "manifest.json"
+            elif sampling is None:
+                manifest = generate_dataset(target, count=count, seed=saved["seed"], split="validation")
+            else:
+                from bridge_evolve.evolution.sampling import conditional_source, descriptor
+                description = {**descriptor(sampling), "draw": {}}
+                manifest = generate_dataset(target, count=count, seed=saved["seed"], split="validation",
+                    sampling=description, source=conditional_source(sampling, count, saved["seed"], self.stop,
+                                                                   description["draw"], self.system))
             saved["dataset"] = str(manifest.relative_to(self.directory))
             self.checkpoint()
         manifest, boards = load_dataset(self.directory / saved["dataset"])
         if manifest["count"] != count or manifest["seed"] != saved["seed"]:
             raise ValueError("Fresh round dataset identity mismatch.")
+        if sampling is not None:
+            from bridge_evolve.evolution.sampling import check_cohort, descriptor
+            expected = descriptor(sampling)
+            if not isinstance(manifest["sampling"], dict) or any(
+                    manifest["sampling"].get(key) != value for key, value in expected.items()):
+                raise ValueError("The dataset does not identify this frozen conditional cohort.")
+            for index, board in enumerate(boards):
+                check_cohort(sampling, {"board": board_data(board.board)}, index, self.system)
         for board in boards:
             previous = self.connection.execute("SELECT round_id FROM families WHERE family=?", (board.family_id,)).fetchone()
             if previous is not None and previous[0] != identity:
@@ -178,13 +247,18 @@ class Evaluator:
         raws = [{"index": board.index, "family_id": board.family_id, "board": board_data(board.board)} for board in boards]
         return saved, raws
 
-    def evaluate(self, identity: str, systems: list[str], count: int) -> dict:
+    def system(self, identity):
+        if f"systems/{identity}.json" not in self.state["system_files"]:
+            raise ValueError("Auction sampling may use only registered frozen systems.")
+        return frozen_system(str(self.directory / "systems"), identity)
+
+    def evaluate(self, identity: str, systems: list[str], count: int, *, sampling=None) -> dict:
         self.stop()
         systems = list(dict.fromkeys(systems))
-        saved, boards = self._round_data(identity, systems, count)
+        saved, boards = self._round_data(identity, systems, count, sampling=sampling)
         parent = self.directory / "rounds" / identity
         summary_path = parent / "summary.json"
-        if saved.get("status") == "checked":
+        if saved.get("status") in ("checked", "blocked"):
             contents = summary_path.read_bytes()
             if hashlib.sha256(contents).hexdigest() != saved["summary_sha256"]:
                 raise ValueError("Cached round summary hash mismatch.")
@@ -203,10 +277,20 @@ class Evaluator:
         self.state["phase"] = identity
         self.checkpoint()
         scores = {candidate: {anchor: [] for anchor in anchors} for candidate in systems}
+        components = {candidate: {anchor: {"played_imp_total": 0, "forfeit_imp_total": 0,
+                                          "played_pairs": 0, "forfeit_pairs": 0} for anchor in anchors}
+                      for candidate in systems}
+        coverage = {candidate: {"opening_pass": set(), "partner_response": set()} for candidate in systems}
+        from bridge_evolve.evolution.goals import protocol_goal
+        goal = protocol_goal(self.config.get("protocol_goal"))
         failures = {candidate: [] for candidate in systems}
         logs, hashes = {}, {}
         pending = deque()
         completed = 0
+        resources = {"computed_pairs": 0, "cached_pairs": 0, "failed_pair_records": 0,
+                     "dds_cache_hits": 0, "dds_cache_solves": 0, "dds_fresh_crosschecks": 0,
+                     "dds_unreported_pair_records": 0}
+        original_units = self.state["evaluated_pairs"]
         attempts = 1
         while (parent / f"logs-{attempts}").exists():
             attempts += 1
@@ -235,15 +319,18 @@ class Evaluator:
                         board = parse_board(raw["board"])
                         key = canonical_hash({"candidate": candidate, "opponent": opponent, "deal": deal_hash(board.deal),
                                               "dealer": board.dealer.value, "vulnerability": board.vulnerability.value,
-                                              "engine": self.state["engine_hash"], "oracle": self.oracle_hash})
+                                              "engine": self.state["engine_hash"], "oracle": self.oracle_hash,
+                                              **({"baseline_fault_policy": self.config["baseline_fault_policy"]}
+                                                 if self.config.get("baseline_fault_policy", "strict") != "strict" else {})})
                         cached = self.connection.execute("SELECT body,sha256 FROM pairs WHERE key=?", (key,)).fetchone()
                         if cached is not None:
                             if hashlib.sha256(cached[0]).hexdigest() != cached[1]:
                                 raise ValueError("Evolution score cache hash mismatch.")
                             pending.append((task, key, decode_records(zlib.decompress(cached[0]))[0]))
                         else:
-                            self.reserve_pair()
-                            pending.append((task, key, executor.submit(evaluate_pair, task)))
+                            self.reserve_pair(key)
+                            pending.append((task, key, executor.submit(evaluate_pair, task,
+                                            self.config.get("baseline_fault_policy", "strict"))))
 
                 fill()
                 while pending:
@@ -254,6 +341,15 @@ class Evaluator:
                             self.stop()
                             wait((value,), timeout=.2)
                         record = value.result()
+                        resources["computed_pairs"] += 1
+                        verification = record.get("audit_result", {}).get("dds_verification", {})
+                        if isinstance(verification, dict) and all(
+                                type(verification.get(key)) is int for key in ("cache_hits", "cache_solves")):
+                            resources["dds_cache_hits"] += verification["cache_hits"]
+                            resources["dds_cache_solves"] += verification["cache_solves"]
+                            resources["dds_fresh_crosschecks"] += bool(verification.get("fresh_crosscheck"))
+                        else:
+                            resources["dds_unreported_pair_records"] += 1
                         if record.get("dds") and canonical_hash(record["dds"]["oracle"]) != self.oracle_hash:
                             raise RuntimeError("Worker DDS provenance differs from the frozen evaluator.")
                         if record["audit_result"]["status"] != "failed":
@@ -263,12 +359,30 @@ class Evaluator:
                             self.connection.commit()
                     else:
                         record = value
+                        resources["cached_pairs"] += 1
                     pending.popleft()
                     candidate, anchor, raw, _ = task
                     record.update(source=f"evolution:{self.directory.name}:{identity}", family_id=raw["family_id"],
                                   id=canonical_hash({"round": identity, "pair": key})[:24])
+                    if self.incident_callback is not None and (
+                            record.get("adjudication") or record.get("audit_result", {}).get("errors")):
+                        self.incident_callback(record, candidate, anchor, identity)
+                    if goal is not None:
+                        for table in record["tables"]:
+                            for side, definition in table["systems"].items():
+                                if definition["hash"] == candidate:
+                                    event = goal.opening_pass_event(table, side)
+                                    if event["opening_pass"]:
+                                        coverage[candidate]["opening_pass"].add(raw["family_id"])
+                                    if goal.natural_witness(table, side):
+                                        coverage[candidate]["partner_response"].add(raw["family_id"])
                     writers[(candidate, anchor)].write(record)
                     scores[candidate][anchor].append(record["imp"])
+                    if type(record["imp"]) is int:
+                        component = "forfeit" if record.get("adjudication") else "played"
+                        components[candidate][anchor][component + "_pairs"] += 1
+                        components[candidate][anchor][component + "_imp_total"] += record["imp"]
+                    resources["failed_pair_records"] += bool(record.get("audit_result", {}).get("errors"))
                     for error in record.get("audit_result", {}).get("errors", []):
                         failures[candidate].append({"board": raw["index"] + 1, **error})
                     completed += 1
@@ -292,7 +406,20 @@ class Evaluator:
             result = {"schema": "bridge-evolution-round/v1", "id": identity, "boards": count, "seed": saved["seed"],
                       "systems": systems, "anchors": anchors, "scores": scores, "status": status, "errors": failures,
                       "means": means, "objective": {candidate: statistics.mean(values.values()) for candidate, values in means.items()},
-                      "logs": logs, "log_sha256": hashes, "oracle_hash": self.oracle_hash}
+                      "logs": logs, "log_sha256": hashes, "oracle_hash": self.oracle_hash,
+                      "resources": {**resources, "new_pair_units": self.state["evaluated_pairs"] - original_units,
+                          "scope": "Actual work in the finalized execution, not original DDS counters on reused pair cache records."}}
+            result.update(baseline_fault_policy=self.config.get("baseline_fault_policy", "strict"),
+                          score_components=components)
+            cohort = self.config.get("development_sampling") if sampling is None else sampling
+            if cohort is not None:
+                result.update(evaluation_scope="conditional", development_sampling=cohort,
+                              sampling_draw=load_dataset(self.directory / saved["dataset"])[0]["sampling"]["draw"])
+            if goal is not None:
+                result["protocol_coverage"] = {
+                    candidate: {"opening_pass_families": len(counts["opening_pass"]),
+                                "natural_partner_response_families": len(counts["partner_response"])}
+                    for candidate, counts in coverage.items()}
             save_json(summary_path, result)
             saved.update(status="blocked" if "blocked" in status.values() else "checked",
                          summary_sha256=hashlib.sha256(summary_path.read_bytes()).hexdigest())
@@ -303,6 +430,15 @@ class Evaluator:
                 if not isinstance(future, dict):
                     future.cancel()
             executor.shutdown(wait=True, cancel_futures=True)
+
+    def artifact(self, path, value):
+        save_json(path, value)
+        self.state["artifacts"][path.relative_to(self.directory).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.checkpoint()
+
+    def milestone(self, identity, kind, **fields):
+        self.state.setdefault("milestones", {}).setdefault(identity, {
+            "id": identity, "kind": kind, "timestamp": timestamp(), **fields})
 
     def records(self, result: dict, candidate: str):
         for anchor in result["anchors"]:

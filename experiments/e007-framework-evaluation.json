@@ -1,0 +1,21 @@
+{
+  "name": "E007 框架修复后的冻结候选评价",
+  "profile": "smoke",
+  "source": "research",
+  "evaluation_only": true,
+  "evaluation_sources": ["systems/research-z/index.json"],
+  "evaluation_seconds": 600,
+  "baselines": [
+    "systems/classics-v5.5.5-compact/ccba.json",
+    "systems/classics-v5.5.5-compact/prec.json"
+  ],
+  "benchmark_revision_reason": "显式采用v5.5.5修复参考，重测Git中保存的两个E005 Z发布物。旧参考、原始失败和用量保留，不复用旧分数。仅评价冻结候选，不调用模型、不申请晋级或万副验收。",
+  "origins": ["blank"],
+  "workers": 2,
+  "boards": {"diagnosis": 16, "validity": 16, "screen": 32, "full": 128, "promotion": 128},
+  "max_pairs": 4096,
+  "max_seconds": 1800,
+  "max_agent_requests": 1,
+  "max_agent_tokens": 1000,
+  "automatic_goal_check": false
+}

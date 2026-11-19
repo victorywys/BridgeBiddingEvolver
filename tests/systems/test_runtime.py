@@ -158,7 +158,7 @@ class DecisionBoundaryTests(unittest.TestCase):
     def test_observation_is_immutable_and_has_no_hidden_deal_or_oracle_fields(self):
         self.assertEqual(
             {field.name for field in fields(Observation)},
-            {"hand", "seat", "dealer", "vulnerability", "history", "public_systems", "public_definitions"},
+            {"hand", "seat", "dealer", "vulnerability", "history", "public_systems", "public_definitions", "opaque_sides"},
         )
         obs = observation()
         with self.assertRaises(FrozenInstanceError):

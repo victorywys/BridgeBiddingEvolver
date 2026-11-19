@@ -5,7 +5,7 @@ import random
 import statistics
 
 
-def paired_summary(values: list[int], *, seed: int, resamples: int = 2000) -> dict[str, object]:
+def paired_summary(values: list[int | float], *, seed: int, resamples: int = 2000) -> dict[str, object]:
     if not values or type(seed) is not int or type(resamples) is not int or resamples < 100:
         raise ValueError("Statistics require nonempty paired results and >=100 frozen resamples.")
     rng = random.Random(seed)

@@ -8,6 +8,7 @@ from bridge_evolve.systems import decide, load_system, validate_system
 from bridge_evolve.systems.compact import compact_system
 from bridge_evolve.systems.inputs import parse_observation
 from bridge_evolve.systems.navigation import at_pointer, query_system, system_index
+from bridge_evolve.systems.review import review_position
 from systems.test_v2 import ctx, op, raw_system
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,6 +61,46 @@ class NavigationTests(unittest.TestCase):
         answer = query_system(system, {"view": "search", "state": "answer", "kind": "rule"})
         self.assertEqual(answer["matches"]["total"], 2)
 
+    def test_every_full_definition_is_the_actual_normalized_source_for_v1_and_v2(self):
+        for system in (self.system(), load_system(ROOT / "systems/1nt-v1.json")):
+            raw = system.to_data()
+            index = system_index(system)
+            for key, node in index.nodes.items():
+                with self.subTest(version=system.version, key=key):
+                    definition = index.descriptor(key, definition=True)
+                    self.assertEqual(definition["data"], at_pointer(raw, node.pointer))
+                    self.assertEqual(definition["data_kind"], "source_node")
+            state = index.descriptor("state:" + system.initial, definition=True)
+            if system.version == 2:
+                self.assertNotIn("on", state["data"])
+                self.assertIsInstance(state["data"]["transitions"][0], dict)
+                self.assertEqual(state["transition_keys"], ["transition:idle/show"])
+            else:
+                self.assertIn("on", state["data"])
+                self.assertNotIn("transitions", state["data"])
+
+    def test_state_sections_follow_actual_transitions_and_only_selected_assignments(self):
+        read = query_system(self.system(), {"view": "read", "keys": ["state:idle"],
+                                           "sections": ["/transitions/0/set/promised"]})
+        item = read["definitions"]["items"][0]
+        self.assertEqual(item["data"], {"/transitions/0/set/promised": 5})
+        self.assertEqual(item["data_kind"], "sections")
+        self.assertNotIn("transition_keys", item)
+        self.assertEqual({item["key"] for item in read["definitions"]["items"]},
+                         {"state:idle", "parameter:promised"})
+
+    def test_oversized_states_omit_source_and_links_instead_of_returning_fake_ir(self):
+        raw = raw_system()
+        raw["protocol"]["states"]["idle"]["transitions"] = [
+            {"id": f"large.{index}", "when": False, "to": "idle", "set": {}} for index in range(600)]
+        read = query_system(validate_system(raw), {"view": "read", "keys": ["state:idle"]})
+        item = read["definitions"]["items"][0]
+        self.assertIn("definition_omitted", item)
+        self.assertNotIn("data", item)
+        self.assertNotIn("transition_keys", item)
+        self.assertEqual(item["summary"]["transition_count"], 600)
+        self.assertLess(len(json.dumps(read).encode()), 48000)
+
     def test_auction_lookup_never_reads_a_hand_or_uses_private_sender_as_public_meaning(self):
         system = self.system()
         with patch("bridge_evolve.systems.runtime.PublicView.hand", new_callable=unittest.mock.PropertyMock,
@@ -81,6 +122,142 @@ class NavigationTests(unittest.TestCase):
         public = query_system(system, {"view": "auction", "call": "1S"})
         self.assertEqual(result["public_meaning"], public["public_meaning"])
         self.assertTrue(result["private"])
+
+    def test_human_review_resolves_dynamic_public_calls_without_reading_or_selecting_a_hand(self):
+        raw = raw_system()
+        raw["protocol"]["parameters"]["negative_call"] = {"type": "string", "initial": "1C"}
+        choose = op("if", op("eq", {"op": "var", "name": "negative_call"}, "1C"), "C", "D")
+        raw["rules"] = [
+            {"id": "internal.negative", "priority": 20, "when": op("le", {"op": "hcp"}, 7),
+             "action": {"kind": "bid", "level": 1, "strain": choose}},
+            {"id": "internal.positive", "priority": 10, "when": op("ge", {"op": "hcp"}, 8),
+             "action": {"kind": "bid", "level": 1, "strain": op("if",
+                        op("eq", {"op": "var", "name": "negative_call"}, "1C"), "D", "H")}},
+        ]
+        with patch("bridge_evolve.systems.runtime.PublicView.hand", new_callable=unittest.mock.PropertyMock,
+                   side_effect=AssertionError("Private hand read")):
+            result = review_position(validate_system(raw), {"call": "1C"})
+        self.assertEqual(len(result["choices"]), 38)
+        self.assertEqual(len(result["selected"]["senders"]), 1)
+        self.assertIn("大牌点至多7点", result["selected"]["senders"][0]["condition"])
+        self.assertNotIn("negative_call", result["selected"]["senders"][0]["condition"])
+        self.assertEqual(result["selected"]["public_meaning"]["after"]["var.negative_call"], "1C")
+        self.assertFalse(any("hand" in key or "decision" in key for key in result))
+        status = {item["call"]: item["status"] for item in result["choices"]}
+        self.assertEqual(status["1D"], "defined")
+        self.assertEqual(status["1S"], "unused")
+        self.assertEqual(status["XX"], "illegal")
+        raw["rules"] = [{"id": "private.choice", "priority": 1, "when": True, "action": {
+            "kind": "bid", "level": op("if", op("le", {"op": "hcp"}, 7), 1, 2),
+            "strain": op("if", op("le", {"op": "hcp"}, 7), "C", "D")}}]
+        split = review_position(validate_system(raw), {"call": "1C"})
+        statuses = {item["call"]: item["status"] for item in split["choices"]}
+        self.assertEqual(statuses["2D"], "defined")
+        self.assertEqual(statuses["1D"], "unused")
+        self.assertEqual(statuses["2C"], "unused")
+        raw["rules"][0]["action"] = {"kind": "cheapest", "min_level": 1, "max_level": 7, "strains": {
+            "op": "list", "item_type": "string",
+            "args": [op("if", op("ge", {"op": "length", "suit": "S"}, {"op": "length", "suit": "H"}), "S", "H")]}}
+        split = review_position(validate_system(raw), {"call": "1S"})
+        self.assertIn("黑桃不少于红桃", split["selected"]["senders"][0]["condition"])
+        self.assertEqual(split["selected"]["status"], "defined")
+        self.assertEqual(split["issues"], [])
+        raw["rules"][0]["when"] = op("in", op("if",
+            op("ge", {"op": "length", "suit": "S"}, {"op": "length", "suit": "H"}), "S", "H"), ["S"])
+        described = review_position(validate_system(raw), {"call": "1S"})
+        self.assertIn("黑桃不少于红桃", described["selected"]["senders"][0]["condition"])
+        self.assertNotIn('则"S"', described["selected"]["senders"][0]["condition"])
+
+    def test_review_preserves_priority_exclusions_and_does_not_hide_unimplemented_hand_partitions(self):
+        raw = raw_system()
+        raw["rules"] = [
+            {"id": "strong", "priority": 20, "when": op("ge", {"op": "hcp"}, 16),
+             "action": {"kind": "call", "call": "1C"}},
+            {"id": "other", "priority": 10, "when": True, "action": {"kind": "call", "call": "1D"}},
+        ]
+        result = review_position(validate_system(raw), {"call": "1D"})
+        self.assertIn("大牌点至少16点", result["selected"]["senders"][0]["exclusions"])
+        self.assertEqual(result["selected"]["senders"][0]["exclusion_details"],
+                         [{"condition": "大牌点至少16点", "calls": ["1C"]}])
+        raw["rules"][0]["when"] = True
+        covered = review_position(validate_system(raw), {"call": "1D"})
+        self.assertEqual(covered["selected"]["status"], "unused")
+        raw["rules"] = raw["rules"][:1]
+        raw["rules"][0]["when"] = op("ge", {"op": "hcp"}, 16)
+        raw["fallback"] = {"kind": "error", "message": "No weak response implemented"}
+        missing = review_position(validate_system(raw), {"call": "1D"})
+        self.assertEqual(missing["selected"]["status"], "missing")
+        self.assertIn("未实现", missing["issues"][0]["message"])
+
+    def test_review_associates_same_call_and_dynamic_priority_branches_without_private_hands(self):
+        raw = raw_system()
+        raw["rules"] = [
+            {"id": "preferred", "priority": 20, "when": op("ge", {"op": "hcp"}, 16),
+             "action": {"kind": "call", "call": "1D"}},
+            {"id": "other", "priority": 10, "when": True, "action": {"kind": "call", "call": "1D"}},
+        ]
+        with patch("bridge_evolve.systems.runtime.PublicView.hand", new_callable=unittest.mock.PropertyMock,
+                   side_effect=AssertionError("Private hand read")):
+            result = review_position(validate_system(raw), {"call": "1D"})
+            self.assertEqual(result["selected"]["senders"][1]["exclusion_details"],
+                             [{"condition": "大牌点至少16点", "calls": ["1D"]}])
+            raw["rules"][0]["action"] = {"kind": "bid", "level": 1, "strain": op("if",
+                op("ge", {"op": "length", "suit": "S"}, {"op": "length", "suit": "H"}), "S", "H")}
+            dynamic = review_position(validate_system(raw), {"call": "1D"})
+            detail = dynamic["selected"]["senders"][0]["exclusion_details"][0]
+            self.assertEqual(detail["calls"], ["1H", "1S"])
+            self.assertEqual(detail["condition"], "大牌点至少16点")
+            raw["rules"][0]["action"]["level"] = op("add", {"op": "hcp"}, 1)
+            unknown = review_position(validate_system(raw), {"call": "1D"})
+            self.assertEqual(unknown["selected"]["senders"][0]["exclusion_details"][0]["calls"], [])
+            self.assertIn("动态叫品", unknown["issues"][0]["message"])
+            raw["rules"][0]["action"] = {"kind": "error", "message": "Unimplemented preferred branch"}
+            missing = review_position(validate_system(raw), {"call": "1D"})
+            self.assertEqual(missing["selected"]["senders"][0]["exclusion_details"][0],
+                             {"condition": "大牌点至少16点", "calls": []})
+            self.assertIn("未实现", missing["issues"][0]["message"])
+
+    def test_review_exposes_unexecutable_steps_without_substituting_a_call(self):
+        raw = raw_system()
+        raw["rules"] = [{"id": "overflow", "priority": 1, "when": True,
+                         "action": {"kind": "step", "after": "7NT", "count": 1}}]
+        result = review_position(validate_system(raw), {"call": "P"})
+        self.assertEqual(result["selected"]["senders"], [])
+        self.assertEqual(result["selected"]["status"], "missing")
+        self.assertIn("exceeds 7NT", result["issues"][0]["details"][0])
+
+    def test_review_renders_publicly_bound_suit_lengths_and_exposes_unbound_suits(self):
+        raw = raw_system()
+        raw["protocol"]["parameters"]["chosen_suit"] = {"type": "string", "initial": "S"}
+        raw["rules"] = [{"id": "dynamic.length", "priority": 1,
+                         "when": op("ge", {"op": "length", "suit": {"op": "var", "name": "chosen_suit"}}, 5),
+                         "action": {"kind": "call", "call": "1C"}}]
+        known = review_position(validate_system(raw), {"call": "1C"})
+        self.assertEqual(known["selected"]["status"], "defined")
+        self.assertEqual(known["selected"]["senders"][0]["condition"], "黑桃至少5张")
+        raw["protocol"]["parameters"]["chosen_suit"]["initial"] = ""
+        unknown = review_position(validate_system(raw), {"call": "1C"})
+        self.assertEqual(unknown["selected"]["status"], "missing")
+        self.assertIn("尚未确定", unknown["selected"]["senders"][0]["condition"])
+
+    def test_review_switches_partnerships_and_never_uses_our_protocol_to_explain_an_unknown_opponent(self):
+        system = self.system()
+        unknown = review_position(system, {"history": ["P"], "call": "1S"}, side="NS")
+        self.assertIsNone(unknown["acting_system"])
+        self.assertEqual(unknown["selected"]["status"], "missing")
+        self.assertIsNone(unknown["selected"]["public_meaning"])
+        known = review_position(system, {"history": ["P"], "call": "1S"}, side="NS", definitions={"EW": system})
+        self.assertEqual(known["acting_system"]["hash"], system.content_hash)
+        self.assertEqual(known["selected"]["status"], "defined")
+
+    def test_review_historical_turn_ignores_future_calls_and_ended_positions_have_no_legal_next_call(self):
+        system = self.system()
+        earlier = review_position(system, {"history": ["1S", "P", "2S"], "turn": 1})
+        direct = review_position(system, {"call": "1S"})
+        self.assertEqual(earlier["selected"], direct["selected"])
+        ended = review_position(system, {"history": ["P"] * 4})
+        self.assertTrue(ended["ended"])
+        self.assertTrue(all(item["status"] == "illegal" for item in ended["choices"]))
 
     def test_selected_turn_does_not_read_later_calls(self):
         system = self.system()
@@ -163,6 +340,9 @@ class NavigationTests(unittest.TestCase):
                        {"op": "is_legal", "call": {"op": "var", "name": "future_call"}}),
             "action": {"kind": "call", "call": "2NT"}})
         system = validate_system(raw)
+        review = review_position(system, {"call": "2NT"})
+        self.assertEqual(review["selected"]["status"], "missing")
+        self.assertIn("动态叫品", review["selected"]["senders"][0]["condition"])
         observation = {"hand": "AKQ.JT9.KQ32.876", "seat": "N", "dealer": "N",
                        "vulnerability": "none", "history": []}
         result = query_system(system, {"view": "hand", "observation": observation})

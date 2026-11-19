@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -19,42 +20,62 @@ Value: TypeAlias = bool | int | str | tuple["Value", ...]
 class SystemError(ValueError):
     """An invalid specification, observation, or protocol execution."""
 
-    def __init__(self, message: str, *, actor: str | None = None, system_hash: str | None = None):
-        super().__init__(message)
+    def __init__(self, message: str, *, actor: str | None = None, system_hash: str | None = None,
+                 pointer: str | None = None):
+        super().__init__(message if pointer is None else f"{message} (at {pointer or '/'})")
         self.actor = actor
         self.system_hash = system_hash
+        self.pointer = pointer
 
 
-def object_fields(value: object, required: set[str], optional: set[str] | None = None) -> dict[str, object]:
+def source_pointer(parent: str | None, *parts: object) -> str | None:
+    if parent is None:
+        return None
+    return parent + "".join("/" + str(part).replace("~", "~0").replace("/", "~1") for part in parts)
+
+
+@contextmanager
+def source_at(pointer: str | None) -> Iterator[None]:
+    try:
+        yield
+    except SystemError as error:
+        if pointer is None or error.pointer is not None:
+            raise
+        raise SystemError(str(error), actor=error.actor, system_hash=error.system_hash, pointer=pointer) from error
+
+
+def object_fields(value: object, required: set[str], optional: set[str] | None = None,
+                  *, pointer: str | None = None) -> dict[str, object]:
     if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
-        raise SystemError("Expected an object with string keys.")
+        raise SystemError("Expected an object with string keys.", pointer=pointer)
     fields: dict[str, object] = dict(value)
     missing = required - fields.keys()
     extra = fields.keys() - required - (optional or set())
     if missing or extra:
-        raise SystemError(f"Object fields: missing={sorted(missing)}, unknown={sorted(extra)}")
+        raise SystemError(f"Object fields: missing={sorted(missing)}, unknown={sorted(extra)}",
+                          pointer=source_pointer(pointer, sorted(extra or missing)[0]))
     return fields
 
 
-def text(value: object) -> str:
+def text(value: object, *, pointer: str | None = None) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise SystemError("Expected a nonempty string.")
+        raise SystemError("Expected a nonempty string.", pointer=pointer)
     return value
 
 
-def integer(value: object) -> int:
+def integer(value: object, *, pointer: str | None = None) -> int:
     if type(value) is not int:
-        raise SystemError("Expected an integer, not a boolean or float.")
+        raise SystemError("Expected an integer, not a boolean or float.", pointer=pointer)
     return value
 
 
-def parse_call(value: object) -> Call:
-    name = text(value)
+def parse_call(value: object, *, pointer: str | None = None) -> Call:
+    name = text(value, pointer=pointer)
     special = {"P": Call.pass_call, "X": Call.double, "XX": Call.redouble}
     if name in special:
         return special[name]()
     if not re.fullmatch(r"[1-7](C|D|H|S|NT)", name):
-        raise SystemError(f"Invalid call: {name!r}; use P, X, XX, or 1C..7NT.")
+        raise SystemError(f"Invalid call: {name!r}; use P, X, XX, or 1C..7NT.", pointer=pointer)
     return Call.bid(int(name[0]), Strain(name[1:]))
 
 

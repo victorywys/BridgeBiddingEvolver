@@ -7,6 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from dataclasses import asdict, replace
 from pathlib import Path
+from contextlib import ExitStack
 
 from bridge_evolve import __version__
 from bridge_evolve.diagnostics import MINIMUM_PYTHON, EnvironmentReport, collect_diagnostics
@@ -43,6 +44,9 @@ def _parser() -> argparse.ArgumentParser:
     classics.add_argument("--sources", type=Path, help="Directory containing the exact ccba.docx and prec.docx.")
     classics.add_argument("--compact", action="store_true",
                           help="Share repeated expressions and use readable compact JSON; output must not exist.")
+    module = system_commands.add_parser("build-nt-module", help="Isolate a natural 1NT branch and finite executable contract.")
+    module.add_argument("--system", type=Path, required=True)
+    module.add_argument("--output", type=Path, required=True)
     render = system_commands.add_parser("render", help="Generate the complete Chinese specification.")
     render.add_argument("path", type=Path)
     render.add_argument("--output", type=Path)
@@ -88,6 +92,19 @@ def _parser() -> argparse.ArgumentParser:
     precompute.add_argument("--cache", type=Path, required=True)
     evaluate = commands.add_parser("evaluate", help="Run a frozen two-table, real-DDS comparison.")
     evaluate.add_argument("--config", type=Path, required=True)
+    baseline = commands.add_parser("baseline", help="Register or query a pinned local neural baseline.")
+    baseline_commands = baseline.add_subparsers(dest="baseline_command", required=True)
+    register = baseline_commands.add_parser("register")
+    register.add_argument("--source", type=Path, required=True, help="Pinned Pidgin checkout, including its BRL port.")
+    register.add_argument("--python", type=Path, required=True, help="Independent CPU inference environment.")
+    register.add_argument("--weights", type=Path, required=True)
+    register.add_argument("--family", choices=("brl", "pidgin"), required=True)
+    register.add_argument("--name", required=True)
+    register.add_argument("--model-source", required=True, help="Versioned public weight URL.")
+    register.add_argument("--output", type=Path, required=True)
+    baseline_decide = baseline_commands.add_parser("decide")
+    baseline_decide.add_argument("path", type=Path)
+    baseline_decide.add_argument("--observation", type=Path, required=True)
     records = commands.add_parser("records", help="Inspect or losslessly compact auction/audit records.")
     record_commands = records.add_subparsers(dest="records_command", required=True)
     convert = record_commands.add_parser("convert", help="Write a new compact JSONL; never overwrite the input.")
@@ -108,16 +125,24 @@ def _parser() -> argparse.ArgumentParser:
     show_record.add_argument("--pretty", action="store_true")
     evolution = commands.add_parser("evolve", help="Run bounded protocol evolution with fresh random evaluation rounds.")
     evolution_commands = evolution.add_subparsers(dest="evolution_command", required=True)
-    for name in ("init", "run"):
+    for name in ("init", "run", "evaluate"):
         command = evolution_commands.add_parser(name)
-        command.add_argument("--config", type=Path, required=True)
+        command.add_argument("--config", type=Path, required=name != "evaluate")
+        if name == "evaluate":
+            command.add_argument("--run", type=Path, help="Drain an existing current-engine queue without any model calls.")
         command.add_argument("--output", type=Path)
         command.add_argument("--profile", choices=("smoke", "pilot", "research"))
         command.add_argument("--source", choices=("research", "agent", "numbers", "replay"))
         command.add_argument("--model", help="Exact authenticated gateway model ID; unavailable models fail without fallback.")
         command.add_argument("--from-research", help="Copy a compatible saved research workspace into a new experiment without copying scores or resetting the old budget.")
         command.add_argument("--from-champion", help="Continue frozen published champions and their regression cases, without copying old scores or budgets.")
+        command.add_argument("--from-releases", action="append", default=[],
+                             help="Import frozen releases from a project-local stopped run or published archive index.")
     evolution_commands.add_parser("models", help="List actual authenticated local gateway models.")
+    repair = evolution_commands.add_parser("repair", help="Import stopped-run incidents into the current engine, repair and continue using remaining resources.")
+    repair.add_argument("--from-run", type=Path, required=True)
+    repair.add_argument("--output", type=Path)
+    repair.add_argument("--continue-with", choices=("research", "evaluation"), default="research")
     for name in ("resume", "status", "cancel", "verify"):
         command = evolution_commands.add_parser(name)
         command.add_argument("--run", type=Path, required=True)
@@ -160,6 +185,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return _records_command(arguments)
             if arguments.command == "evolve":
                 return _evolution_command(arguments)
+            if arguments.command == "baseline":
+                return _baseline_command(arguments)
             if arguments.command in ("dataset", "oracle", "evaluate"):
                 return _research_command(arguments)
             return _system_command(arguments)
@@ -180,6 +207,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     if arguments.require_dds and not report.dds.available:
         print(f"error: DDS is required but unavailable. {report.dds.detail}", file=sys.stderr)
         return 1
+    return 0
+
+
+def _baseline_command(arguments: argparse.Namespace) -> int:
+    from bridge_evolve.systems.external import ExternalPolicy, open_player, register_baseline
+    from bridge_evolve.evaluation.data import canonical_hash
+    if arguments.baseline_command == "register":
+        if arguments.output.exists():
+            raise ValueError("Baseline registration must not overwrite an existing frozen descriptor.")
+        data = register_baseline(source=arguments.source, python=arguments.python, weights=arguments.weights,
+                                 family=arguments.family, name=arguments.name, model_source=arguments.model_source)
+        arguments.output.parent.mkdir(parents=True, exist_ok=True)
+        with arguments.output.open("x", encoding="utf8") as output:
+            output.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+        result = {"output": str(arguments.output), "runtime": data["runtime"]}
+    else:
+        with open_player(arguments.path) as player:
+            if not isinstance(player, ExternalPolicy):
+                raise ValueError("baseline decide requires an external baseline registration.")
+            observation = parse_observation(load_json(arguments.observation))
+            call, inference = player.decide(observation)
+            result = {"call": str(call), "system_hash": player.content_hash, "inference": inference,
+                      "observation_hash": canonical_hash(load_json(arguments.observation))}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -219,7 +270,22 @@ def _evolution_command(arguments: argparse.Namespace) -> int:
         from bridge_evolve.evolution.models import available_models
         print(json.dumps({"default": "gpt-6-astra", "models": available_models(ROOT)}, ensure_ascii=False))
         return 0
-    if action in ("init", "run"):
+    if action == "repair":
+        from bridge_evolve.evolution.handoff import initialize_maintenance
+        directory = initialize_maintenance(arguments.from_run, output=arguments.output, mode=arguments.continue_with)
+        print(f"Maintenance experiment: {directory}", file=sys.stderr, flush=True)
+        run(directory, repair_only=True)
+        result = overview(directory)
+    elif action == "evaluate" and arguments.run is not None:
+        if (arguments.config is not None or arguments.from_releases or arguments.output is not None
+                or any(getattr(arguments, field) is not None for field in
+                       ("profile", "source", "model", "from_research", "from_champion"))):
+            raise ValueError("Choose --run or a new --config/--from-releases experiment, not both.")
+        run(arguments.run, evaluation_only=True)
+        result = overview(arguments.run)
+    elif action in ("init", "run", "evaluate"):
+        if arguments.config is None:
+            raise ValueError("New evaluation-only experiments require --config and frozen evaluation inputs.")
         config = load_json(arguments.config)
         if not isinstance(config, dict):
             raise ValueError("Evolution configuration must be a JSON object.")
@@ -233,10 +299,14 @@ def _evolution_command(arguments: argparse.Namespace) -> int:
             config["research_seed_run"] = arguments.from_research
         if arguments.from_champion:
             config["champion_seed_run"] = arguments.from_champion
+        if arguments.from_releases:
+            config["evaluation_sources"] = list(config.get("evaluation_sources", [])) + arguments.from_releases
+        if action == "evaluate":
+            config["evaluation_only"] = True
         directory = initialize(config, arguments.output, ROOT)
         print(f"Evolution experiment: {directory}", file=sys.stderr, flush=True)
-        if action == "run":
-            run(directory)
+        if action in ("run", "evaluate"):
+            run(directory, evaluation_only=action == "evaluate")
         result = overview(directory)
     elif action == "cancel":
         result = cancel(arguments.run)
@@ -248,10 +318,15 @@ def _evolution_command(arguments: argparse.Namespace) -> int:
         run(arguments.run, goal_only=action == "verify")
         result = overview(arguments.run)
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
-    return 0 if result["status"] in ("ready", "queued", "running", "completed", "target_met", "cancelled") else 1
+    return 0 if result["status"] in ("ready", "queued", "running", "completed", "continued", "target_met", "cancelled") else 1
 
 
 def _system_command(arguments: argparse.Namespace) -> int:
+    if arguments.command == "system" and arguments.system_command == "build-nt-module":
+        from bridge_evolve.evolution.contracts import build_nt_contract
+        path = build_nt_contract(arguments.system, arguments.output)
+        print(json.dumps({"contract": str(path), "scope": "finite diagnostic contract, not exhaustive coverage"}))
+        return 0
     if arguments.command == "system" and arguments.system_command == "build-classics":
         from bridge_evolve.systems.classics import export_classics
         hashes = export_classics(arguments.output, sources=arguments.sources, compact=arguments.compact)
@@ -264,9 +339,12 @@ def _system_command(arguments: argparse.Namespace) -> int:
             if arguments.system is not None or arguments.ns is None or arguments.ew is None:
                 raise SystemError("General mode requires --ns and --ew, not --system.")
             prefix = parse_prefix(load_json(arguments.prefix)) if arguments.prefix else ()
-            output = run_auction(
-                load_system(arguments.ns), load_system(arguments.ew), board, prefix=prefix, trace=arguments.trace,
-            )
+            from bridge_evolve.systems.external import open_player
+            with ExitStack() as stack:
+                output = run_auction(
+                    stack.enter_context(open_player(arguments.ns)), stack.enter_context(open_player(arguments.ew)),
+                    board, prefix=prefix, trace=arguments.trace,
+                )
         else:
             if arguments.system is None or arguments.ns or arguments.ew or arguments.prefix:
                 raise SystemError("Local 1NT mode requires --system and does not accept --ns/--ew/--prefix.")

@@ -1,0 +1,25 @@
+{
+  "name": "E012 逼叫性Pass发布版本无模型复评",
+  "profile": "pilot",
+  "source": "research",
+  "origins": ["blank"],
+  "protocol_goal": "forcing-pass",
+  "evaluation_only": true,
+  "evaluation_sources": ["evo-684f7fe889dd44e7bf38cad901061e9f"],
+  "baseline_fault_policy": "baseline-forfeit-24",
+  "baselines": [
+    "systems/classics-v5.5.5-compact/ccba.json",
+    "systems/classics-v5.5.5-compact/prec.json"
+  ],
+  "generations": 1,
+  "workers": 2,
+  "boards": {"diagnosis": 16, "validity": 8, "screen": 32, "full": 256, "promotion": 256},
+  "resamples": 2000,
+  "max_agent_requests": 1,
+  "max_agent_tokens": 1000,
+  "max_pairs": 10000,
+  "max_seconds": 3600,
+  "evaluation_seconds": 600,
+  "allow_promotion": false,
+  "automatic_goal_check": false
+}

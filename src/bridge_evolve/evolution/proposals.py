@@ -66,7 +66,7 @@ def rule_catalog(system, modules: list[str], hits: dict, limit=12, preferred=())
     return result, deferred
 
 
-def evidence_packet(system, records: list[dict], modules: list[str], limit=8) -> dict:
+def evidence_packet(system, records: list[dict], modules: list[str], limit=8, *, state_prefix=None) -> dict:
     groups, hits = {}, Counter()
     out_of_scope = 0
     for record in records:
@@ -78,7 +78,8 @@ def evidence_packet(system, records: list[dict], modules: list[str], limit=8) ->
                 if ("NS" if step["seat"] in "NS" else "EW") != own_side:
                     continue
                 rule = step.get("private_trace", {}).get("rule_id", "")
-                if modules != ["*"] and not any(module in rule for module in modules):
+                if (state_prefix is not None and not step.get("state", "").startswith(state_prefix)) or (
+                        state_prefix is None and modules != ["*"] and not any(module in rule for module in modules)):
                     out_of_scope += 1
                     continue
                 hits[rule] += 1
@@ -128,6 +129,8 @@ def evidence_packet(system, records: list[dict], modules: list[str], limit=8) ->
               "deferred_rule_ids": deferred_rules, "out_of_scope_calls": out_of_scope,
               "rules": catalog, "transitions": transitions,
               "parameters": raw["protocol"]["parameters"]}
+    if state_prefix is not None:
+        packet["state_prefix"] = state_prefix
 
     def context_size():
         return len(json.dumps(agent_packet(packet), ensure_ascii=False).encode())

@@ -347,7 +347,7 @@ class ClassicTranslationTests(unittest.TestCase):
             manifest = json.loads((root / "translation.json").read_text())
             migration = json.loads((root / "migration.json").read_text())
             self.assertEqual(migration["systems"], hashes)
-            self.assertEqual(manifest["profile_version"], "translation-v5.5.4")
+            self.assertEqual(manifest["profile_version"], "translation-v5.5.5")
             self.assertEqual(len(manifest["partnership_state"]["goals"]), 8)
             self.assertIn("hcp_intervals", manifest["partnership_state"])
             self.assertIn("pass_limits", manifest["partnership_state"])

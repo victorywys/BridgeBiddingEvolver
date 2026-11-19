@@ -23,6 +23,15 @@ SCHEMA = "bridge-system-navigation/v1"
 PAGE_BYTES = 28000
 UNKNOWN = object()
 NODE_KINDS = {"rule", "transition", "announcement", "feature", "parameter", "state", "fallback"}
+QUERY_FIELDS = {
+    "catalog": {"offset", "limit"},
+    "search": {"query", "kind", "module", "state", "call", "offset", "limit"},
+    "read": {"keys", "sections", "dependencies", "offset", "limit"},
+    "references": {"key", "transitive", "offset", "limit"},
+    "diff": {"kind", "module", "offset", "limit"},
+    "auction": {"dealer", "vulnerability", "history", "call", "turn", "offset", "limit"},
+    "hand": {"observation", "offset", "limit"},
+}
 
 
 def pointer_parts(pointer: str) -> list[str]:
@@ -40,8 +49,13 @@ def at_pointer(value, pointer: str):
         if isinstance(value, list):
             if not part.isdigit() or str(int(part)) != part:
                 raise ValueError("Array pointers require canonical nonnegative indices.")
-            value = value[int(part)]
+            index = int(part)
+            if index >= len(value):
+                raise ValueError(f"JSON pointer target does not exist: {pointer!r} (array index {part}).")
+            value = value[index]
         elif isinstance(value, dict):
+            if part not in value:
+                raise ValueError(f"JSON pointer target does not exist: {pointer!r} (missing member {part!r}).")
             value = value[part]
         else:
             raise ValueError("JSON pointer traverses a scalar.")
@@ -79,7 +93,7 @@ def _page(items: list, offset=0, limit=20) -> dict:
         if size + length > PAGE_BYTES:
             if selected:
                 break
-            item = {key: value for key, value in item.items() if key not in ("data", "description")}
+            item = {key: value for key, value in item.items() if key not in ("data", "description", "transition_keys")}
             item["definition_omitted"] = "Use the source pointer or a narrower section of this node."
             length = len(_encoded(item))
             if length > PAGE_BYTES:
@@ -100,6 +114,23 @@ def _references(value, operator: str) -> set[str]:
     if isinstance(value, list):
         return set().union(*(_references(child, operator) for child in value)) if value else set()
     return set()
+
+
+def _assigned_parameters(data, kind: str, sections=None) -> set[str]:
+    if kind == "state":
+        transitions = [(f"/transitions/{index}", item) for index, item in enumerate(data.get("transitions", []))]
+    elif kind == "transition":
+        transitions = [("", data)]
+    else:
+        return set()
+    result = set()
+    for prefix, transition in transitions:
+        for name in transition["set"]:
+            pointer = prefix + "/set/" + escape_pointer(name)
+            if sections is None or any(section == "" or pointer == section or pointer.startswith(section + "/")
+                                       or section.startswith(pointer + "/") for section in sections):
+                result.add("parameter:" + name)
+    return result
 
 
 def _namespace(identifier: str) -> str:
@@ -227,33 +258,31 @@ class SystemIndex:
         self._feature_fingerprints = {}
         for name, expression in system.features:
             key = "feature:" + name
-            self._add(key, "feature", name, "/features/" + escape_pointer(name), "shared", expression.to_data())
+            self._add(key, "feature", name, "/features/" + escape_pointer(name), "shared")
             self.expressions[key] = expression
-        for name, value in self.raw["protocol"].get("parameters", {}).items():
+        for name in self.raw["protocol"].get("parameters", {}):
             self._add("parameter:" + name, "parameter", name, "/protocol/parameters/" + escape_pointer(name),
-                      "parameters", value)
+                      "parameters")
         for state in system.states:
             pointer = "/protocol/states/" + escape_pointer(state.name)
             self._add("state:" + state.name, "state", state.name, pointer, "state:" + state.name,
-                      {"otherwise": state.otherwise, "on": dict(state.on),
-                       "transitions": [_transition_key(state.name, item.id) for item in state.transitions]},
                       state=state.name)
             for position, transition in enumerate(state.transitions):
                 key = _transition_key(state.name, transition.id)
                 self._add(key, "transition", transition.id, f"{pointer}/transitions/{position}",
-                          "state:" + state.name, transition.to_data(), state=state.name)
+                          "state:" + state.name, state=state.name)
                 self.expressions[key] = transition.when
         for position, announcement in enumerate(system.announcements):
             key = "announcement:" + announcement.id
             self._add(key, "announcement", announcement.id, f"/announcements/{position}",
-                      "announcements", announcement.to_data())
+                      "announcements")
             self.expressions[key] = announcement.when
         for position, rule in enumerate(system.rules):
             key = "rule:" + rule.id
             self._add(key, "rule", rule.id, f"/rules/{position}", "rules:" + _namespace(rule.id),
-                      self.raw["rules"][position], priority=rule.priority)
+                      priority=rule.priority)
             self.expressions[key], self.actions[key] = rule.when, rule.call
-        self._add("fallback", "fallback", "fallback", "/fallback", "fallback", self.raw["fallback"])
+        self._add("fallback", "fallback", "fallback", "/fallback", "fallback")
         self.actions["fallback"] = system.fallback
         for node in self.nodes.values():
             for dependency in node.dependencies:
@@ -261,13 +290,13 @@ class SystemIndex:
                     raise SystemError(f"Unresolved navigation dependency: {dependency}")
                 self.users[dependency].add(node.key)
 
-    def _add(self, key, kind, identifier, pointer, module, data, *, state="", priority=None):
+    def _add(self, key, kind, identifier, pointer, module, *, state="", priority=None):
         if key in self.nodes:
             raise SystemError(f"Duplicate semantic navigation key: {key}")
+        data = at_pointer(self.raw, pointer)
         dependencies = {"feature:" + name for name in _references(data, "ref")}
         dependencies.update("parameter:" + name for name in _references(data, "var"))
-        if kind == "transition":
-            dependencies.update("parameter:" + name for name in data["set"])
+        dependencies.update(_assigned_parameters(data, kind))
         self.nodes[key] = Node(key, kind, identifier, pointer, module, data, tuple(sorted(dependencies)), state, priority)
 
     def _node(self, key: str) -> Node:
@@ -286,8 +315,15 @@ class SystemIndex:
             result["edit_precondition"] = {"op": "test", "path": node.pointer + "/id", "value": node.identifier}
         if key in self.actions:
             result["action"] = render_action(self.actions[key], expand_references=False)
+        if node.kind == "state":
+            result["summary"] = {"otherwise": node.data["otherwise"],
+                                 "transition_count": len(node.data.get("transitions", [])),
+                                 "call_transition_count": len(node.data.get("on", {}))}
         if definition:
-            result.update(data=copy.deepcopy(node.data), dependencies=list(node.dependencies))
+            result.update(data=copy.deepcopy(node.data), data_kind="source_node", dependencies=list(node.dependencies))
+            if node.kind == "state":
+                result["transition_keys"] = [_transition_key(node.identifier, item["id"])
+                                             for item in node.data.get("transitions", [])]
             if key in self.expressions:
                 result["description"] = _preview(self.expressions[key])
             result["external_users"] = len(self.users[key])
@@ -374,13 +410,7 @@ class SystemIndex:
             data = selected[key]
             direct = {"feature:" + name for name in _references(data, "ref")}
             direct.update("parameter:" + name for name in _references(data, "var"))
-            if self.nodes[key].kind == "transition":
-                for pointer in sections:
-                    parts = pointer_parts(pointer)
-                    if len(parts) > 1 and parts[0] == "set":
-                        direct.add("parameter:" + parts[1])
-                    elif parts == ["set"]:
-                        direct.update("parameter:" + name for name in data[pointer])
+            direct.update(_assigned_parameters(self.nodes[key].data, self.nodes[key].kind, sections))
             root_dependencies[key] = tuple(sorted(direct))
         closure, pending = set(), list(roots)
         while pending:
@@ -394,7 +424,9 @@ class SystemIndex:
         for key in order:
             item = self.descriptor(key, definition=True)
             if key in selected:
-                item.update(data=selected[key], sections=sections, dependencies=list(root_dependencies[key]))
+                item.update(data=selected[key], data_kind="sections", sections=sections,
+                            dependencies=list(root_dependencies[key]))
+                item.pop("transition_keys", None)
                 if "/when" not in sections:
                     item.pop("description", None)
             definitions.append(item)
@@ -443,7 +475,9 @@ class SystemIndex:
             node = self._node(key)
             data = node.data
             if node.kind == "state":
-                data = {**data, "transitions": sorted(data["transitions"])}
+                data = {"otherwise": data["otherwise"], "on": data.get("on", {}),
+                        "transitions": sorted(_transition_key(node.identifier, item["id"])
+                                              for item in data.get("transitions", []))}
             self._fingerprints[key] = semantic(data)
         return self._fingerprints[key]
 
@@ -590,16 +624,9 @@ def query_system(system: SystemDefinition, request: dict, *, compare_to: SystemD
         return auction_lookup(system, request, definitions)
     if view == "hand":
         return hand_lookup(system, request, definitions)
-    allowed = {
-        "catalog": {"offset", "limit"},
-        "search": {"query", "kind", "module", "state", "call", "offset", "limit"},
-        "read": {"keys", "sections", "dependencies", "offset", "limit"},
-        "references": {"key", "transitive", "offset", "limit"},
-        "diff": {"kind", "module", "offset", "limit"},
-    }
-    if view not in allowed:
+    if view not in QUERY_FIELDS:
         raise SystemError(f"Unknown system navigation view: {view!r}")
-    fields = object_fields(request, set(), allowed[view] | {"view"})
+    fields = object_fields(request, set(), QUERY_FIELDS[view] | {"view"})
     fields.pop("view", None)
     index = system_index(system)
     if view == "read" and "keys" not in fields or view == "references" and "key" not in fields:

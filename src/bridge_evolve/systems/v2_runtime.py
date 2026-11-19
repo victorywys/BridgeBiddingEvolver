@@ -60,8 +60,12 @@ class Frame:
 
 
 class PublicWorld:
-    def __init__(self, definitions: dict[str, SystemDefinition], dealer: Seat, vulnerability: Vulnerability):
+    def __init__(self, definitions: dict[str, SystemDefinition], dealer: Seat, vulnerability: Vulnerability,
+                 *, opaque_sides: tuple[str, ...] = ()):
         self.definitions = definitions
+        self.opaque_sides = frozenset(opaque_sides)
+        if not self.opaque_sides <= {"NS", "EW"} or self.opaque_sides.intersection(definitions):
+            raise SystemError("Opaque sides cannot also declare a rule IR.")
         self.dealer = dealer
         self.vulnerability = vulnerability
         self.auction = initial_auction(dealer)
@@ -81,8 +85,8 @@ class PublicWorld:
         updated = apply_call(self.auction, call)
         actor = self.auction.next_seat
         actor_side = actor.partnership.value
-        event = PublicEvent(actor, call, actor_side in self.definitions)
-        if event.known:
+        event = PublicEvent(actor, call, actor_side in self.definitions or actor_side in self.opaque_sides)
+        if actor_side in self.definitions:
             tags = set()
             shown = set()
             evaluation = self.evaluation(actor_side, event)
@@ -393,7 +397,7 @@ def build_world(system: SystemDefinition, observation: Observation) -> PublicWor
     if side in definitions and definitions[side].content_hash != system.content_hash:
         raise SystemError("The executing system differs from its public partnership definition.")
     definitions[side] = system
-    world = PublicWorld(definitions, observation.dealer, observation.vulnerability)
+    world = PublicWorld(definitions, observation.dealer, observation.vulnerability, opaque_sides=observation.opaque_sides)
     for call in observation.history:
         world.step(call)
     return world

@@ -2,7 +2,9 @@
 
 搜索可执行、可完整说明的桥牌搭档叫牌协议。长期目标是让研究Agent从现有体系或空白骨架出发，通过同牌实验持续找到更强的协议，而不只是调整几个点力阈值。
 
-**当前阶段：基础设施与自主研究原型已具备，正在补齐可靠的研究—评测闭环；尚无万副双基线提升结论。** 近期不扩大模型预算或Agent数量，先解决已发布候选无法及时评价、上下文膨胀和固定参考缺口。详见[下一阶段计划与验收](docs/14-autoresearch-plan.md)。
+**当前阶段：自动研究已支持[负责人—独立执行者—可信评测与待命修复](docs/19-directed-research.md)，尚无万副双基线提升结论。** 新控制台默认负责人模式，旧配置及历史实验保留原行为。工作集、实验裁决和修复权限有独立约束；新组织方式的真实单位研究成本仍需后续实验检验，本次框架重组没有自动启动付费研究。
+
+下一步已接入[受控自然1NT进化](docs/17-controlled-evolution.md)：隔离外围、42类有限合同及实际资源账，使用[E008小规模配置](experiments/e008-controlled-nt-pilot.json)。不是整套体系重新搜索，也不等于已经完成Local vs Global研究。
 
 ## 当前能力与边界
 
@@ -13,10 +15,16 @@
 | 本人手牌与公开观察隔离 | 运行策略不能看其他三手、DDS、种子或另一桌结果 |
 | 固定版本真实DDS、两桌换位、共同牌与冻结日志 | DDS是全知打牌近似，不是逐叫正确答案或人类实战强度 |
 | Astra持续工具研究、案例、实际断言、讨论与冻结发布 | 已发布不等于已评价或已晋级 |
-| 体系分支导航、依赖/反向引用、语义diff、局面与手牌查询 | 查询层已变小；测试失败信息和交接摘要仍有未修复的大结果路径 |
+| 负责人提出假设、独立执行工作区、真实评价后反馈决策 | 当前单协调器顺序调度；共享预算，不是分布式并行 |
+| 错误触发待命修复、原反例复放、旧规则非干扰与独立审查 | 基线只补显式缺口；新版本仅供下一实验，框架源码需隔离工程验收 |
+| 体系分支导航、依赖/反向引用、语义diff、局面与手牌查询 | 大错误和交接用有界摘要，完整证据按引用读取 |
+| 持久候选队列与evaluation-only | 独立配对/时间预留、稳定键恢复；开发评价不等于晋级 |
 | 审计工作台、历史整理、紧凑记录、实时看板 | 需要本地实验数据；Git克隆不会携带个人运行历史 |
+| BRL-FSP、Pidgin V3.1外部叫牌基线 | 已接入CLI单桌/双桌评测及结果查看；CPU独立环境、无搜索，未替换进化固定锚点 |
 
-CCBA/精确是有明确哈希的**工程基线**，不是两份手册所有细节的完整实现。当前v5.5.4仍有已复现缺口，不能把曾经通过一批回归写成全体系正确性保证。
+外部源码和权重放在工作目录上层`bridge-bidding-baseline/`。三场16副真实DDS接线测试已完成，不据此判断强弱；安装/注册、同牌评测命令和信息边界见[外部基线说明](docs/15-external-baselines.md)。
+
+CCBA/精确是有明确哈希的**工程基线**，不是两份手册所有细节的完整实现。v5.5.5修复E006暴露的竞争逼局续叫与三张支持公开下界；v5.5.4及原失败保留，修复不能冒称全体系正确性证明。
 
 ### 最近实验说明了什么？
 
@@ -33,7 +41,7 @@ CCBA/精确是有明确哈希的**工程基线**，不是两份手册所有细�
 4. **受控实验**：最小1NT模块合同，再做同模型、同预算、多次独立重复的Local vs Global Pilot。
 5. **可信结论**：同步校准跨运行统计预算，并调查外部强基线的许可、可获取性和比较口径。
 
-这些是[待实施的验收项](docs/14-autoresearch-plan.md)，不是当前已经存在的CLI或功能。1NT是方法研究切片，不是完整体系进化的永久边界。
+前三项已有可靠性执行切片，成本台账、1NT合同及方法对照等仍按[验收计划](docs/14-autoresearch-plan.md)继续。1NT不是完整体系进化的永久边界。
 
 ## 快速开始
 
@@ -47,7 +55,7 @@ python3 -m venv .venv
 
 .venv/bin/bridge-evolve --help
 .venv/bin/bridge-evolve doctor --json
-.venv/bin/bridge-evolve system browse systems/classics-v5.5.4-compact/prec.json
+.venv/bin/bridge-evolve system browse systems/classics-v5.5.5-compact/prec.json
 .venv/bin/bridge-evolve system decide systems/general-v2.json \
   --observation examples/general-observation.json --trace
 ```
@@ -91,7 +99,13 @@ npm --prefix tools/copilot-api run start
 
 另一个终端可执行`.venv/bin/bridge-evolve evolve models`核对实际模型列表。不要输出令牌，也不要使用`--show-token`。网关是第三方工具，不是GitHub官方服务端部署方式，使用仍受上游条款和限流约束。
 
-现有研究入口和预算见[进化说明](docs/12-self-evolution.md)。在近期P0验收完成前，不建议直接扩大付费运行；本次文档更新不会启动模型实验。
+现有研究入口和预算见[进化说明](docs/12-self-evolution.md)。宽裕预算、定向自动扩样、候选挑战／融合和独立维护账本见[负责人研究](docs/19-directed-research.md)及[E015配置](experiments/e015-expanded-directed-research.json)；付费运行须显式确认资源授权，额度不是消耗目标。该配置续接本机旧研究，克隆仓库不携带运行数据。已有候选可独立评价，无需网关或模型凭据：
+
+```bash
+.venv/bin/bridge-evolve evolve evaluate --config experiments/e007-framework-evaluation.json
+```
+
+该配置持久禁止研究模型调用，不进行晋级或万副检查；恢复与来源迁移见[操作说明](docs/16-framework-reliability.md)。
 
 ## 验证
 
@@ -132,6 +146,8 @@ npm --prefix tools/copilot-api test
 | --- | --- |
 | [项目约束](AGENTS.md)、[研究目标](docs/01-research-brief.md) | 固定目标与边界 |
 | [下一阶段计划](docs/14-autoresearch-plan.md) | 当前优先级、六项验收及Local vs Global设计 |
+| [可靠性改造](docs/16-framework-reliability.md) | 有界完整证据、v5.5.5、独立候选评价与恢复 |
+| [受控模块进化](docs/17-controlled-evolution.md) | 1NT实验合同、资源记录及E008范围 |
 | [架构](docs/02-architecture.md)、[实施路线](docs/05-roadmap.md) | 已实现边界与后续接线 |
 | [评测协议](docs/04-evaluation.md)、[实验规范](docs/06-experiments.md) | 公平比较、统计与报告 |
 | [语言设计](docs/03-system-language.md)、[v1](docs/07-executable-systems.md)、[v2](docs/08-general-protocols-v2.md) | 实际IR及协议语义 |

@@ -478,7 +478,8 @@ async function solveDDS() {
 }
 function renderAuctions(board) {
   const firstTurn = board.difference.first_turn;
-  $("#first-difference").textContent = board.tables.some(table => table.error) ? "执行不完整 · 不作完整配对比较" : firstTurn == null ? "叫牌序列相同" : `第 ${firstTurn + 1} 叫开始分歧`;
+  $("#first-difference").textContent = board.adjudication ? "baseline未实现分支 · 配对弃权计+24 IMP，非DDS定约得分"
+    : board.tables.some(table => table.error) ? "执行不完整 · 不作完整配对比较" : firstTurn == null ? "叫牌序列相同" : `第 ${firstTurn + 1} 叫开始分歧`;
   $("#auction-tables").innerHTML = [0, 1].map((tableIndex) => {
     const table = board.tables[tableIndex];
     if (!table) return `<section class="auction-panel"><div class="auction-header"><div class="auction-name">桌${tableIndex + 1}<span>未运行</span></div></div><div class="bidding-grid"></div><div class="auction-result"><div class="contract-line">—</div><div class="score-line">NS 分数 <strong>—</strong></div></div></section>`;
@@ -487,7 +488,8 @@ function renderAuctions(board) {
     const other = board.tables[1 - tableIndex];
     const systemLinks = ["NS", "EW"].map((side) => {
       const system = table.systems?.[side] || {};
-      return `<button class="system-link" data-system="${escapeHTML(system.hash || "")}" title="${escapeHTML(system.name || "未指定体系")}">${side} · ${escapeHTML(shortSystem(system.name))}</button>`;
+      return `<button class="system-link" data-system="${escapeHTML(system.hash || "")}" title="${escapeHTML(system.name || "未指定体系")}">${side} · ${escapeHTML(shortSystem(system.name))}</button>
+        <button class="text-button" data-engineering-system="${escapeHTML(system.hash || "")}" title="高级：原始工程定义">工程</button>`;
     }).join("");
     const bids = Array.from({ length: cells }, (_, cellIndex) => {
       const turn = cellIndex - offset;
@@ -633,7 +635,7 @@ function renderBoard() {
   }).join("")}` : ""}`;
   const position = state.filtered.findIndex((item) => item.id === state.activeId);
   $("#board-title").textContent = `第 ${board.number} 副`;
-  $("#board-imp").innerHTML = `${sign(board.imp)}<small>IMP</small>`;
+  $("#board-imp").innerHTML = `${sign(board.imp)}<small>${board.adjudication ? "IMP · 对手弃权" : "IMP"}</small>`;
   $("#board-imp").className = `imp-display ${tone(board.imp)}`;
   $("#board-origin").textContent = state.interactive ? "重新叫牌" : state.bundle.imported ? "导入牌例" : "牌例";
   $("#board-meta").innerHTML = `<span>${board.dealer} 发牌</span><span>${vulNames[board.vulnerability]}</span>${board.label ? `<span>${escapeHTML(board.label)}</span>` : ""}`;
@@ -1181,7 +1183,7 @@ async function deleteLibrary(event) {
   finally { $("#confirm-library-delete").disabled = false; }
 }
 function evolutionStatus(value) {
-  return { ready: "待启动", target_met: "目标达成", blocked: "需处理", budget_exhausted: "预算用尽", eligible: "候选有效",
+  return { ready: "待启动", continued: "已交接新实验", target_met: "目标达成", blocked: "需处理", budget_exhausted: "预算用尽", eligible: "候选有效",
     rejected: "提案拒绝", duplicate: "重复提案", invalid: "候选无效", screen_rejected: "初筛未入围",
     checked: "完整有效", comparison_blocked: "正式比较受阻",
     no_full_gain: "复测未见提升", insufficient_coverage: "尚未测到行为差异", portfolio_retained: "保留研究分支",
@@ -1215,9 +1217,19 @@ function renderEvolutions() {
     `<article class="history-item evolution-run-card ${liveStatuses.has(run.status) ? "is-live" : ""}"><div><strong>${escapeHTML(run.name)}</strong><span>${liveStatuses.has(run.status) ? '<i class="live-dot" aria-hidden="true"></i>' : ""}${run.generation}/${run.max_generations}代完成 · ${escapeHTML(evolutionStatus(run.status))}</span></div><p>${escapeHTML(evolutionPhase(run.phase))} · ${escapeHTML(activityText(run))}</p>
       ${run.evaluation_progress?.status === "running" ? `<progress value="${run.evaluation_progress.completed_pairs}" max="${run.evaluation_progress.total_pairs}" aria-label="本轮配对进度"></progress><p class="form-hint">本轮 ${run.evaluation_progress.completed_pairs}/${run.evaluation_progress.total_pairs}个配对完成</p>` : ""}
       <p class="form-hint">${escapeHTML(run.model)} · ${run.agent_requests}次请求 · ${run.promotions}次晋级</p>
-      ${Object.keys(run.comparison_issues || {}).length ? '<p class="form-hint">存在固定对手检查问题；研究继续，正式比较受阻。</p>' : ""}
+      ${Object.keys(run.comparison_issues || {}).length ? `<p class="form-hint">${escapeHTML(comparisonStateText(run))}</p>` : ""}
       <div class="report-actions"><button class="button small ${liveStatuses.has(run.status) ? "primary" : ""}" data-track-evolution="${run.id}">${liveStatuses.has(run.status) ? "实时追踪" : "迭代结果与当前体系"}</button><button class="button small" data-watch-evolution="${run.id}">原始详情</button>${run.report_available ? `<a class="button small" href="/api/evolutions/${run.id}/report" download>下载报告</a>` : ""}</div></article>`).join("")
     : '<p class="form-hint">尚无进化实验。</p>';
+}
+function updateEvolutionBudgetControls() {
+  const director = $("#evolution-source").value === "research" && $("#evolution-architecture").value === "director";
+  const mode = $("#evolution-budget-mode");
+  if (!director) mode.value = "episode";
+  else if (mode.disabled) mode.value = "campaign";
+  mode.disabled = !director;
+  for (const id of ["evolution-maintenance-requests", "evolution-maintenance-tokens", "evolution-maintenance-seconds"]) {
+    $(`#${id}`).disabled = !director || mode.value !== "campaign";
+  }
 }
 async function submitEvolution(event) {
   event.preventDefault();
@@ -1234,15 +1246,33 @@ async function submitEvolution(event) {
       max_output_tokens: Number($("#evolution-max-output").value), max_research_turns: Number($("#evolution-max-turns").value),
       max_tool_calls: Number($("#evolution-max-tools").value), max_pairs: Number($("#evolution-max-pairs").value),
       max_seconds: Number($("#evolution-max-seconds").value), research_seconds: Number($("#evolution-research-seconds").value),
-      max_lab_boards: Number($("#evolution-lab-boards").value), max_releases: Number($("#evolution-max-releases").value) };
+      max_lab_boards: Number($("#evolution-lab-boards").value), max_releases: Number($("#evolution-max-releases").value),
+      max_trial_boards: Number($("#evolution-trial-boards").value), max_context_bytes: Number($("#evolution-max-context").value),
+      max_promotions: Number($("#evolution-challenges").value), agent_timeout: Number($("#evolution-request-timeout").value) };
     if ($("#evolution-task").value.trim()) payload.research_task = $("#evolution-task").value.trim();
+    if (payload.source === "research") Object.assign(payload, {
+      research_architecture: $("#evolution-architecture").value,
+      hypotheses_per_unit: Number($("#evolution-hypotheses").value), repair_attempts: Number($("#evolution-repairs").value),
+      selection_policy: $("#evolution-selection-policy").value,
+    });
+    if (payload.research_architecture === "director") {
+      payload.research_budget_mode = $("#evolution-budget-mode").value;
+      if (payload.research_budget_mode === "campaign") payload.maintenance_budget = {
+        max_requests: Number($("#evolution-maintenance-requests").value),
+        max_tokens: Number($("#evolution-maintenance-tokens").value),
+        max_seconds: Number($("#evolution-maintenance-seconds").value),
+      };
+    }
+    payload.baseline_fault_policy = "baseline-forfeit-24";
+    if (payload.source === "research" && $("#evolution-protocol-goal").value) payload.protocol_goal = $("#evolution-protocol-goal").value;
+    if (payload.selection_policy === "parent-improvement") payload.automatic_goal_check = false;
     if (state.researchSeedRun) payload.research_seed_run = state.researchSeedRun;
     if (state.championSeedRun) payload.champion_seed_run = state.championSeedRun;
     if ($("#evolution-name").value.trim()) payload.name = $("#evolution-name").value.trim();
     const result = await fetchJSON("/api/evolutions", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload) });
     await refreshHome();
-    await openEvolution(result.id);
+    await evolutionDashboard.open(result.id);
   } catch (error) { $("#evolution-error").textContent = error.message; $("#evolution-error").hidden = false; }
   finally { $("#start-evolution").disabled = false; $("#start-evolution").textContent = "开始自进化"; }
 }
@@ -1296,15 +1326,21 @@ async function prepareEvolutionContinuation(run, kind) {
   await showHome();
   $("#evolution-controls").open = true;
   $("#evolution-source").value = "research";
+  $("#evolution-architecture").value = "director";
+  $("#evolution-hypotheses").value = String(Math.max(4, run.workflow?.hypotheses_per_unit || 0));
+  $("#evolution-budget-mode").value = "campaign";
+  $("#evolution-protocol-goal").value = run.protocol_goal || "";
+  $("#evolution-selection-policy").value = run.selection_policy || "confirmed";
   $("#evolution-model").value = run.model;
   $("#evolution-system-a").value = run.baselines[0].hash;
   $("#evolution-system-b").value = run.baselines[1].hash;
   $("#evolution-origins").disabled = false;
   $("#evolution-origins").value = run.champions.Z ? (run.champions.A ? "both" : "blank") : "existing";
   $("#evolution-name").value = `${run.name} · ${kind === "champion" ? "冠军续跑" : "草稿续接"}`;
-  $("#evolution-generations").value = kind === "champion" ? "3" : "1";
+  $("#evolution-generations").value = "12";
   $("#evolution-profile").value = run.profile;
-  $("#evolution-max-turns").value = String(run.budgets.max_research_turns || 48);
+  $("#evolution-max-turns").value = String(Math.max(1600, run.budgets.max_research_turns || 0));
+  updateEvolutionBudgetControls();
   $("#evolution-task").value = "继续已保存的体系设计，不要从头重建。先检查现有测试、研究记录和试验结果，必要时继续修复，实际复测通过后发布完整候选；未解决的问题如实记录。";
   $("#evolution-continuation-caption").textContent = `承接「${run.name}」的${kind === "champion" ? "已冻结冠军" : "未发布工作区"}、案例与测试；不复制成绩或清零旧用量。请确认新实验模型和预算后开始。`;
   $("#evolution-continuation").hidden = false;
@@ -1381,11 +1417,16 @@ async function watchResearch() {
     $("#research-dialog-title").textContent = `${run.id} · 自主研究`;
     $("#research-details").innerHTML = `<p><strong>${escapeHTML(evolutionStatus(run.status))}</strong> · ${escapeHTML(run.model)} · ${run.turns}轮 · ${run.tool_calls}次工具</p>
       ${run.summary ? `<p>${escapeHTML(run.summary)}</p>` : ""}
+      ${run.implementation_state?.stage_design ? `<h3>阶段设计：手牌分区与各叫品</h3>
+        <p class="research-text">${escapeHTML(run.implementation_state.stage_design)}</p>` : ""}
       <details class="technical-details" data-research-detail="prompt"><summary>实际系统prompt</summary><pre>${escapeHTML(run.prompt)}</pre></details>
       <h3>研究记录与讨论</h3>${run.notes.length ? run.notes.map(note => `<article class="history-item"><strong>${note.kind === "review" ? "独立讨论" : note.kind === "handoff" ? "上下文交接" : "研究记录"}</strong>${note.question ? `<p>${escapeHTML(note.question)}</p>` : ""}<p class="research-text">${escapeHTML(note.text)}</p></article>`).join("") : '<p class="form-hint">尚无研究记录。</p>'}
       ${run.tests ? `<h3>实际测试</h3><p>${run.tests.passed}/${run.tests.tests}通过 · ${run.tests.failed}失败 · ${run.tests.change_witnesses}项行为变化验证</p>` : ""}
+      ${run.tests?.details_omitted ? `<p><a class="button small" href="${escapeHTML(researchEvidenceURL(url, run.tests.details_ref))}" download>下载完整历史测试结果</a></p>` : ""}
+      ${run.full_results?.length ? `<details><summary>完整证据（${run.full_results.length}项）</summary><ul>${run.full_results.map(item =>
+        `<li><a href="${escapeHTML(researchEvidenceURL(url, { result_id: item.result_id }))}" download>${escapeHTML(item.result_id.slice(0, 12))} · ${recordSize(item.bytes)}</a></li>`).join("")}</ul></details>` : ""}
       <h3>工具与调试历史</h3><p class="form-hint">第${run.total_events ? run.offset + 1 : 0}–${Math.min(run.total_events, run.offset + run.limit)}条／共${run.total_events}条</p>
-      ${run.events.map((item, index) => item.type === "tool_result" ? `<details class="technical-details" data-research-detail="event-${run.offset + index}"><summary>${escapeHTML(item.name)} · ${item.ok ? "完成" : "返回问题"}</summary><pre>${escapeHTML(item.summary)}</pre><button class="button small" data-research-tool="${escapeHTML(item.call_id)}">查看完整输入与输出</button></details>` : `<article class="history-item"><p class="research-text">${escapeHTML(item.text || item.summary || item.type)}</p></article>`).join("")}
+      ${run.events.map((item, index) => item.type === "tool_result" ? `<details class="technical-details" data-research-detail="event-${run.offset + index}"><summary>${escapeHTML(item.name)} · ${item.ok ? "完成" : "返回问题"}</summary><pre>${escapeHTML(item.summary)}</pre><button class="button small" data-research-tool="${escapeHTML(item.call_id)}">查看输入与输出摘要</button><a class="button small" href="${escapeHTML(researchEvidenceURL(url, { pointer: "/operations/" + item.call_id.replaceAll("~", "~0").replaceAll("/", "~1") }))}" download>下载完整输入与输出</a></details>` : `<article class="history-item"><p class="research-text">${escapeHTML(item.text || item.summary || item.type)}</p></article>`).join("")}
       <div class="report-actions">${run.offset > 0 ? `<button class="button small" data-research-offset="${Math.max(0, run.offset - run.limit)}">上一页</button>` : ""}${run.offset + run.limit < run.total_events ? `<button class="button small" data-research-offset="${run.offset + run.limit}">下一页</button>` : ""}<button class="button small" data-research-latest>最新记录</button></div>
       <pre id="research-tool-output" class="research-tool-output" ${savedTool ? "" : "hidden"}>${savedTool ? escapeHTML(savedTool) : ""}</pre>`;
     for (const item of $("#research-details").querySelectorAll("details")) if (opened.has(item.dataset.researchDetail)) item.open = true;
@@ -1585,7 +1626,11 @@ async function shareBoard() {
   }
 }
 const systemBrowser = createSystemBrowser($("#system-browser"), { escapeHTML, fetchJSON, toast });
-async function showSystem(identifier, options = {}) {
+function showSystem(identifier, options = {}) {
+  if (!identifier) return toast("该导入记录未附体系标识。", true);
+  window.open(protocolReviewURL({ system: identifier, ...options }), "_blank", "noopener");
+}
+async function showEngineeringSystem(identifier, options = {}) {
   if (!identifier) return toast("该导入记录未附体系标识。", true);
   const loadId = state.systemLoad = (state.systemLoad || 0) + 1;
   $("#system-title").textContent = "体系内容";
@@ -1685,11 +1730,17 @@ $("#evolution-jobs").addEventListener("click", evolutionAction);
 $("#evolution-details").addEventListener("click", evolutionAction);
 $("#evolution-form").addEventListener("submit", submitEvolution);
 $("#refresh-evolution-models").addEventListener("click", refreshEvolutionModels);
-$("#evolution-profile").addEventListener("change", () => { $("#evolution-max-turns").value = $("#evolution-profile").value === "smoke" ? "16" : "48"; });
+$("#evolution-profile").addEventListener("change", () => {
+  if ($("#evolution-budget-mode").value !== "campaign") $("#evolution-max-turns").value = $("#evolution-profile").value === "smoke" ? "16" : "48";
+});
+$("#evolution-architecture").addEventListener("change", updateEvolutionBudgetControls);
+$("#evolution-budget-mode").addEventListener("change", updateEvolutionBudgetControls);
 $("#evolution-source").addEventListener("change", () => {
   $("#evolution-origins").disabled = $("#evolution-source").value !== "research";
   if ($("#evolution-source").value !== "research") { state.researchSeedRun = null; state.championSeedRun = null; $("#evolution-continuation").hidden = true; }
+  updateEvolutionBudgetControls();
 });
+updateEvolutionBudgetControls();
 $("#clear-evolution-continuation").addEventListener("click", () => { state.researchSeedRun = null; state.championSeedRun = null; $("#evolution-continuation").hidden = true; });
 $("#research-dialog").addEventListener("close", () => { clearTimeout(state.researchTimer); state.researchURL = null; });
 $("#research-details").addEventListener("click", async event => {
@@ -1797,6 +1848,8 @@ $("#auction-tables").addEventListener("click", (event) => {
   if (bid) { state.trace = [Number(bid.dataset.table), Number(bid.dataset.turn)]; renderAuctions(current()); renderTrace(current()); updateURL(); }
   const system = event.target.closest("[data-system]");
   if (system) showSystem(system.dataset.system);
+  const engineering = event.target.closest("[data-engineering-system]");
+  if (engineering) showEngineeringSystem(engineering.dataset.engineeringSystem);
 });
 $("#flag-button").addEventListener("click", () => saveAnnotation(annotation(current()).status === "flagged" ? "unreviewed" : "flagged"));
 $("#save-note").addEventListener("click", () => saveAnnotation());
@@ -1943,5 +1996,5 @@ initialize();
 import { filterDefaults, compileFilters, matchesAdvancedFilters } from "./review-filters.mjs";
 import { buildAuctionStatistics } from "./auction-stats.mjs";
 import { createEvolutionDashboard } from "./evolution-dashboard.mjs";
-import { createSystemBrowser } from "./system-browser.mjs";
-import { activityText, liveStatuses } from "./evolution-view.mjs";
+import { createSystemBrowser, protocolReviewURL } from "./system-browser.mjs";
+import { activityText, comparisonStateText, liveStatuses, researchEvidenceURL } from "./evolution-view.mjs";

@@ -263,7 +263,8 @@ class EvolutionTests(unittest.TestCase):
         bad = load_system(path)
         for owner in ("candidate", "anchor"):
             with self.subTest(owner=owner):
-                directory = self.initialize(baselines=self.paths if owner == "candidate" else [str(path), self.paths[1]])
+                directory = self.initialize(baselines=self.paths if owner == "candidate" else [str(path), self.paths[1]],
+                                            baseline_fault_policy="strict")
                 controller = Controller(directory)
                 controller.state["test_only"] = True
                 candidate = bad if owner == "candidate" else load_system(Path(self.paths[0]))

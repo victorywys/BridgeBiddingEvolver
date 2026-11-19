@@ -379,6 +379,8 @@ def agent_board(record: dict) -> dict:
     if record.get("dds"):
         summary["dds_NESW_CDHSNT"] = [[record["dds"]["table"][seat][strain] for strain in ("C", "D", "H", "S", "NT")] for seat in "NESW"]
         summary["par"] = record["dds"]["par"]
+    if record.get("adjudication"):
+        summary["adjudication"] = copy.deepcopy(record["adjudication"])
     return summary
 
 

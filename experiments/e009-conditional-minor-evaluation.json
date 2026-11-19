@@ -1,0 +1,42 @@
+{
+  "name": "E009 弱长低花接力条件开发复评",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "origins": ["module"],
+  "module_contract": "systems/nt-module-v1/contract.json",
+  "evaluation_only": true,
+  "evaluation_sources": ["evo-66b57cf1f0614f0dbd7ae687a55c1f33"],
+  "baselines": [
+    "systems/classics-v5.5.5-compact/ccba.json",
+    "systems/classics-v5.5.5-compact/prec.json"
+  ],
+  "development_sampling": {
+    "name": "N自然15–17均型1NT；S为0–7点、无五张高花、至少六张低花",
+    "dealer": "N",
+    "vulnerability": "cycle",
+    "attempt_limit": 1000000,
+    "constraints": {
+      "N": {"hcp": [15, 17]},
+      "S": {"hcp": [0, 7], "S": [0, 4], "H": [0, 4]}
+    },
+    "hand_conditions": {
+      "N": {"op": "balanced"},
+      "S": {"op": "or", "args": [
+        {"op": "ge", "args": [{"op": "length", "suit": "C"}, 6]},
+        {"op": "ge", "args": [{"op": "length", "suit": "D"}, 6]}
+      ]}
+    }
+  },
+  "generations": 1,
+  "workers": 2,
+  "boards": {"diagnosis": 16, "validity": 8, "screen": 16, "full": 128, "promotion": 256},
+  "resamples": 2000,
+  "max_agent_requests": 1,
+  "max_agent_tokens": 1000,
+  "max_pairs": 1000,
+  "max_seconds": 900,
+  "evaluation_seconds": 600,
+  "allow_promotion": false,
+  "automatic_goal_check": false
+}

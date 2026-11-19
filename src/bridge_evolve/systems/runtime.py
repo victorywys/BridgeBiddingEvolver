@@ -36,6 +36,7 @@ class Observation:
     history: tuple[Call, ...]
     public_systems: tuple[str, ...] = ()
     public_definitions: tuple[tuple[str, SystemDefinition], ...] = ()
+    opaque_sides: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if (
@@ -66,6 +67,10 @@ class Observation:
             sides.append(side)
         if len(set(sides)) != len(sides):
             raise SystemError("Duplicate partnership public definition.")
+        if (not isinstance(self.opaque_sides, tuple)
+                or any(not isinstance(side, str) or side not in ("NS", "EW") or side in sides for side in self.opaque_sides)
+                or len(set(self.opaque_sides)) != len(self.opaque_sides)):
+            raise SystemError("Opaque sides must be distinct NS/EW sides without an IR definition.")
         auction = replay(self.dealer, self.history)
         if auction.ended or auction.next_seat != self.seat:
             raise SystemError("Observation must describe the current player of an unfinished auction.")
@@ -277,6 +282,7 @@ def _decide_and_advance(
         expected[side] = system
         if (world.dealer != observation.dealer or world.vulnerability != observation.vulnerability
                 or world.auction.calls != observation.history
+                or world.opaque_sides != frozenset(observation.opaque_sides)
                 or {side: definition.content_hash for side, definition in world.definitions.items()}
                 != {side: definition.content_hash for side, definition in expected.items()}):
             raise SystemError("Incremental public state does not match the current observation.")

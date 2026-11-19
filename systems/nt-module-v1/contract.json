@@ -1,0 +1,870 @@
+{
+  "schema": "bridge-module-contract/v1",
+  "name": "Natural 15-17 1NT complete continuation pilot",
+  "anchor": "anchor.json",
+  "anchor_hash": "2d3b943cf8ebce2bce533e985914f5ff7d9bacd9ec94854af5129a11349e15aa",
+  "source_system_hash": "7a68e80669e1488bbcdc910ec6a61d78b6648478da888fbe436158e01a0e67f5",
+  "state_prefix": "nt15.",
+  "root": "nt15.nt",
+  "exits": [
+    "finished",
+    "outside"
+  ],
+  "entry": {
+    "call": "1NT",
+    "opener_hcp": [
+      15,
+      17
+    ],
+    "shapes": [
+      "4333",
+      "4432",
+      "5332"
+    ]
+  },
+  "cases": [
+    {
+      "id": "hcp7-7-major_H",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "962.64.AQ2.AKQ93",
+          "E": "AQT8.AK.K984.652",
+          "S": "K3.QJ9873.53.J74",
+          "W": "J754.T52.JT76.T8"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "major_H",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-both_majors",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "Q72.K76.QJ3.9852",
+          "E": "953.AQ94.87.AKQJ",
+          "S": "KJ8.T.KT652.T643",
+          "W": "AT64.J8532.A94.7"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "both_majors",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-balanced",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "A85.KQ2.QJ432.93",
+          "E": "T9743.984.KT5.J6",
+          "S": "K62.JT6.A7.AKQ54",
+          "W": "QJ.A753.986.T872"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "balanced",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-major_H",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "Q98.K5.Q74.87542",
+          "E": "T.AQ976.JT96.JT6",
+          "S": "AK7532.J42.2.Q93",
+          "W": "J64.T83.AK853.AK"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "major_H",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-balanced",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AQ98.Q7.KJ3.AT43",
+          "E": "K2.A954.8652.987",
+          "S": "75.KJ832.QT9.K52",
+          "W": "JT643.T6.A74.QJ6"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "balanced",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-balanced",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "AKQJT875.-.2.AK96",
+          "E": "96.AQ4.AKQ54.Q87",
+          "S": "2.T87652.J63.T54",
+          "W": "43.KJ93.T987.J32"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "balanced",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-balanced",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "K973.T86.KQ3.643",
+          "E": "QT64.KJ42.65.KQT",
+          "S": "AJ.A753.A84.A872",
+          "W": "852.Q9.JT972.J95"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "balanced",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-long_C",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "843.AQT643.Q643.-",
+          "E": "96.75.A8.AKQT973",
+          "S": "Q752.98.JT952.52",
+          "W": "AKJT.KJ2.K7.J864"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "long_C",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-long_C",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AT6.AT4.QT972.KQ",
+          "E": "J543.87.KJ853.96",
+          "S": "KQ987.6.6.AT7542",
+          "W": "2.KQJ9532.A4.J83"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "long_C",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-both_majors",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "954.4.A76.KQT875",
+          "E": "KJ2.A5.KJ42.A632",
+          "S": "QT6.KJ9863.83.J9",
+          "W": "A873.QT72.QT95.4"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "both_majors",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-major_S",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "Q9543.QT742.3.A5",
+          "E": "A82.85.T82.KQ876",
+          "S": "K6.KJ3.AKQJ9.942",
+          "W": "JT7.A96.7654.JT3"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "major_S",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp7-7-balanced",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "93.84.QT85.QT872",
+          "E": "AQJ74.532.43.654",
+          "S": "K652.KJ76.AK2.93",
+          "W": "T8.AQT9.J976.AKJ"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "balanced",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-major_S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "KQT7.AKJ2.T4.AT8",
+          "E": "9.Q98653.AJ8.Q95",
+          "S": "A8543.7.Q965.643",
+          "W": "J62.T4.K732.KJ72"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "major_S",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-major_S",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "9764.KJT94.852.Q",
+          "E": "A2.A76.AJ974.A96",
+          "S": "Q8.832.KT3.K8754",
+          "W": "KJT53.Q5.Q6.JT32"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "major_S",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-balanced",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "AKT82.T98.J8.Q92",
+          "E": "93.K765.QT93.K76",
+          "S": "754.AQJ4.A5.AJT8",
+          "W": "QJ6.32.K7642.543"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "balanced",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp7-7-long_C",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "KT954.KQ.KJ4.QJT",
+          "E": "QJ6.A2.T2.765432",
+          "S": "873.9843.Q9875.9",
+          "W": "A2.JT765.A63.AK8"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "long_C",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-both_majors",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "J9.AQ92.KT6.AQ72",
+          "E": "AT.KJT.AJ975.T83",
+          "S": "K8764.76543.Q8.9",
+          "W": "Q532.8.432.KJ654"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "both_majors",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-long_D",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "AJ42.AQJ932.9.T4",
+          "E": "KQ.8654.K32.AQJ8",
+          "S": "T865.7.T74.97632",
+          "W": "973.KT.AQJ865.K5"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "long_D",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-major_H",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "8653.KT732.J.J43",
+          "E": "J72.AJ54.KQ943.K",
+          "S": "AQT.Q96.A85.A875",
+          "W": "K94.8.T762.QT962"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "major_H",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-long_C",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "T86.QJ62.AJ94.85",
+          "E": "Q97.K84.5.AJT432",
+          "S": "J54.T93.KT862.K6",
+          "W": "AK32.A75.Q73.Q97"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "long_C",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-long_D",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "KJT5.A983.AJ4.Q7",
+          "E": "A972.J52.T732.A9",
+          "S": "-.KQT6.KQ9865.842",
+          "W": "Q8643.74.-.KJT653"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "long_D",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-major_H",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "32.K752.T85.KT76",
+          "E": "AJ754.QJ.A64.A98",
+          "S": "K86.64.QJ.QJ5432",
+          "W": "QT9.AT983.K9732.-"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "major_H",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-both_majors",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "K953.T543.J92.AK",
+          "E": "86.J82.A8765.Q95",
+          "S": "A74.AK96.K4.J732",
+          "W": "QJT2.Q7.QT3.T864"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "both_majors",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-major_S",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "732.965.-.J875432",
+          "E": "J98654.A73.AJ9.A",
+          "S": "T.QJT82.KT843.Q6",
+          "W": "AKQ.K4.Q7652.KT9"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "major_S",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-balanced",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "K43.K94.AKQT2.92",
+          "E": "T72.QJ6.5.K87653",
+          "S": "AJ85.A7.J943.AQT",
+          "W": "Q96.T8532.876.J4"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "balanced",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-long_D",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "T97.QT4.97.AKQJ8",
+          "E": "K864.AK7.KQ42.T5",
+          "S": "AQ532.J32.T.7432",
+          "W": "J.9865.AJ8653.96"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "long_D",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-major_H",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "93.AQ952.5.KJT85",
+          "E": "Q862.K8.A964.643",
+          "S": "AK74.74.Q872.AQ7",
+          "W": "JT5.JT63.KJT3.92"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "major_H",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp11-15-major_H",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "K87.J2.QT8.KQ632",
+          "E": "3.AKT743.KJ94.T8",
+          "S": "QJ952.986.752.54",
+          "W": "AT64.Q5.A63.AJ97"
+        }
+      },
+      "responder_hcp_band": [
+        11,
+        15
+      ],
+      "shape_class": "major_H",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-major_S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "AK2.AJT76.A9.T72",
+          "E": "3.93.KJT842.AQ63",
+          "S": "QJT95.Q52.Q.K984",
+          "W": "8764.K84.7653.J5"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "major_S",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-major_H",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "AQJT985.975.T2.J",
+          "E": "K74.K3.A9876.KQ2",
+          "S": "62.842.J543.T984",
+          "W": "3.AQJT6.KQ.A7653"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "major_H",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp0-6-long_C",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "-.K642.53.JT87652",
+          "E": "Q97653.987.T96.4",
+          "S": "T8.QJT.AQJ74.AQ3",
+          "W": "AKJ42.A53.K82.K9"
+        }
+      },
+      "responder_hcp_band": [
+        0,
+        6
+      ],
+      "shape_class": "long_C",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-both_majors",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "QT92.94.QT54.863",
+          "E": "A654.AQ76.63.AKJ",
+          "S": "J87.JT52.9872.T4",
+          "W": "K3.K83.AKJ.Q9752"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "both_majors",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-long_D",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "K74.Q54.AQ.AT642",
+          "E": "JT532.76.64.J875",
+          "S": "Q8.AJ32.JT9532.9",
+          "W": "A96.KT98.K87.KQ3"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "long_D",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp10-10-both_majors",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "4.7.QJT9653.T984",
+          "E": "KQ85.KJ3.87.AQ75",
+          "S": "JT76.AT4.A42.K32",
+          "W": "A932.Q98652.K.J6"
+        }
+      },
+      "responder_hcp_band": [
+        10,
+        10
+      ],
+      "shape_class": "both_majors",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp9-9-long_D",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "AJ632.7.KJT432.4",
+          "E": "Q95.KQT842.Q.J76",
+          "S": "K84.A93.A65.A985",
+          "W": "T7.J65.987.KQT32"
+        }
+      },
+      "responder_hcp_band": [
+        9,
+        9
+      ],
+      "shape_class": "long_D",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp7-7-major_S",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "AQ3.QJ982.Q983.9",
+          "E": "J8642.5.K2.KT654",
+          "S": "KT9.K763.J7.8732",
+          "W": "75.AT4.AT654.AQJ"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "major_S",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-major_S",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "KQ.A92.KQ7.K7642",
+          "E": "98.754.JT62.JT83",
+          "S": "AJT73.QJ3.A4.AQ5",
+          "W": "6542.KT86.9853.9"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "major_S",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp7-7-both_majors",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "5.KT97.Q5.AT9832",
+          "E": "AT6.A2.A643.K654",
+          "S": "KQJ9.854.987.QJ7",
+          "W": "87432.QJ63.KJT2.-"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "both_majors",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp7-7-long_D",
+      "board": {
+        "dealer": "S",
+        "vulnerability": "ew",
+        "hands": {
+          "N": "T87.KQ6.J76532.J",
+          "E": "4.JT9.A94.AKT982",
+          "S": "KQJ62.A4.KT8.Q63",
+          "W": "A953.87532.Q.754"
+        }
+      },
+      "responder_hcp_band": [
+        7,
+        7
+      ],
+      "shape_class": "long_D",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp8-8-long_C",
+      "board": {
+        "dealer": "W",
+        "vulnerability": "both",
+        "hands": {
+          "N": "T865.T72.8654.72",
+          "E": "9.Q96.T.KQJT9864",
+          "S": "A732.AK3.AJ972.3",
+          "W": "KQJ4.J854.KQ3.A5"
+        }
+      },
+      "responder_hcp_band": [
+        8,
+        8
+      ],
+      "shape_class": "long_C",
+      "require_game": false,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-long_C",
+      "board": {
+        "dealer": "N",
+        "vulnerability": "none",
+        "hands": {
+          "N": "T83.KQJ.KJ96.AJ4",
+          "E": "Q97652.32.T752.6",
+          "S": "K4.AT84.A.KQ8753",
+          "W": "AJ.9765.Q843.T92"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "long_C",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    },
+    {
+      "id": "hcp16-25-long_D",
+      "board": {
+        "dealer": "E",
+        "vulnerability": "ns",
+        "hands": {
+          "N": "QJ64.Q83.763.842",
+          "E": "75.K642.AT9.AKJ3",
+          "S": "T82.JT97.4.QT765",
+          "W": "AK93.A5.KQJ852.9"
+        }
+      },
+      "responder_hcp_band": [
+        16,
+        25
+      ],
+      "shape_class": "long_D",
+      "require_game": true,
+      "source": "stratified consumed diagnostic probe"
+    }
+  ],
+  "generator_seed": 618203,
+  "generation_attempts": 76298,
+  "coverage_scope": "42 finite HCP/shape strata, including 7/8/9/10 boundaries; not exhaustive hand coverage or independent fitness evidence"
+}

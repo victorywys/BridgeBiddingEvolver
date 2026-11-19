@@ -1,0 +1,10 @@
+{
+  "experiment_id": "brl-fsp-vs-pidgin-v3.1-smoke",
+  "dataset": "../.runtime/external-baselines-smoke/data/manifest.json",
+  "system_a": "../../../bridge-bidding-baseline/policies/brl-fsp.json",
+  "system_b": "../../../bridge-bidding-baseline/policies/pidgin-v3.1.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/brl-vs-pidgin-smoke-20261105",
+  "bootstrap_seed": 2026110501,
+  "bootstrap_resamples": 2000
+}

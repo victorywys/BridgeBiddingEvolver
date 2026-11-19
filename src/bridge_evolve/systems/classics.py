@@ -20,7 +20,7 @@ SOURCE_HASHES = {
     "ccba": "f0830fca5d16e994e91f9e910b6a55bee9a910d9cd58385a7af6260b5d93f8b9",
     "prec": "130cb74d34a16117ce7df1e82d9a7963b752f945d815bfa793d9375986f7633d",
 }
-PROFILE_VERSION = "translation-v5.5.4"
+PROFILE_VERSION = "translation-v5.5.5"
 
 
 def read_manual(path: Path) -> tuple[tuple[int, str], ...]:
@@ -265,7 +265,7 @@ class Compiler:
         self.kind = kind
         self.raw = {
             "schema_version": 2, "operator_version": 2,
-            "name": f"{'精确1.1.1' if self.precision else 'CCBA2.2'} 工程移植 v5.5.4（公开配合与坚固套编码消歧）",
+            "name": f"{'精确1.1.1' if self.precision else 'CCBA2.2'} 工程移植 v5.5.5（竞争逼局续叫与配合公开下界修复）",
             "scope": "general", "features": feature_definitions(), "announcements": [], "rules": [],
             "protocol": {"initial": "idle", "parameters": {}, "states": {}},
             "fallback": {"kind": "error", "message": "No declared classic-policy completion"},
@@ -604,7 +604,14 @@ class Compiler:
                 promise("minor", strain, 6, all_of(no(eq(var("open_suit"), strain)), event("2" + strain)))
             natural_rebid = no(op("in", "artificial", ctx("event.tags")))
             promise("opener_rebid", strain, 5, all_of(eq(var("open_suit"), strain), eq(ctx("event.strain"), strain), natural_rebid))
-            promise("opener_rebid", strain, 4, all_of(no(eq(var("open_suit"), strain)),
+            partner_length = choose(eq(ctx("event.actor"), var("captain")),
+                                    var("responder_" + strain + "_min"), var("captain_" + strain + "_min"))
+            fit_raise = all_of(eq(var("response_suit"), strain), ge(partner_length, 4),
+                op("in", ctx("event.level"), [2, 3] if strain in ("H", "S") else [2, 3, 4]),
+                op("lt", ctx("agreed_trump_min"), 8),
+                any_of(eq(ctx("forcing"), "game"), all_of(eq(ctx("goal"), "game"), no(ctx("goal_met")))))
+            minimum = choose(fit_raise, op("min", 4, op("max", 0, op("sub", 8, partner_length))), 4)
+            promise("opener_rebid", strain, minimum, all_of(no(eq(var("open_suit"), strain)),
                     eq(ctx("event.strain"), strain), natural_rebid))
             promise(("strong_positive", "strong_negative"), strain, 3 if strain in ("H", "S") else 0,
                     all_of(eq(var("response_suit"), strain), eq(ctx("event.strain"), strain)), agreed=strain in ("H", "S"))
@@ -2314,6 +2321,19 @@ class Compiler:
                 self.rule(phase + ".forcing_one_round_" + suit, all_of(
                     op("in", ctx("forcing"), ["one_round", "slam_try"]), longest(suit, minimum=4), can_bid_suit(suit, 1, 3)),
                     cheapest([suit], 1, 3), phase)
+            if phase == "competition":
+                for suit in ("C", "D"):
+                    known = any_of(eq(var("open_suit"), suit), eq(var("rebid_suit"), suit))
+                    self.rule("competition.forcing_known_rebid_" + suit, all_of(
+                        eq(ctx("forcing"), "game"), ref("am_captain"), known,
+                        ge(length(suit), 4), no(eq(ctx("opponent_bid_strain"), suit)),
+                        no(ref("enemy_stopped")), le(ctx("last_bid_level"), 2),
+                        can_bid_suit(suit, 2, 4)), cheapest([suit], 2, 4), phase)
+                    self.transition(phase, "forcing_known_rebid_" + suit, all_of(
+                        ours(), eq(ctx("event.actor"), var("captain")), eq(ctx("forcing"), "game"), known,
+                        no(eq(ctx("opponent_bid_strain"), suit)), no(op("in", "artificial", ctx("event.tags"))),
+                        eq(ctx("event.strain"), suit), op("in", ctx("event.level"), [2, 3, 4])),
+                        "natural", {"captain_" + suit + "_min": op("max", var("captain_" + suit + "_min"), 4)})
             self.rule(phase + ".defend_above_goal", all_of(ctx("must_bid"), eq(ctx("last_bid_by"), "opponents"),
                       ge(ctx("last_bid_level"), ctx("goal_level"))), fixed("P"), phase)
             self.transition(phase, "defend_above_goal", all_of(event("P"), eq(ctx("last_bid_by"), "opponents")),
@@ -2399,7 +2419,8 @@ def translation_manifest(systems: dict[str, SystemDefinition], sources: Path | N
             "slam_controls": "试探看联手可能上界而非30点HCP下界：上界32+，或有配合牌型价值且上界29+；本人控制值至少3，并比自己公开下界多2点、或有九张配合单缺/六张好将牌/无浪费短套控制等价值。未知40上界本身不够触发。逼局后八张私有可保证配合允许低位回原花色定将并保留探索空间；新花控制不保证自然长套，绝不使用DDS。",
             "slam_safety": "优先确认边花控制，再进入关键张；高花至少两关键张，方片至少三、草花至少四且有将牌Q。红桃/方片若最高答档会越过五阶退路，须本人有将牌Q以排除该答档，或已具备小满贯配合价值；草花和高阶排除问叫也要求有可接受六阶的价值。黑桃允许先问后安全停5S，不能把可能性试探逼成六阶。七张以上AKQ独立套要求扣叫，既有Q/K后续保留。",
             "trump_reselection": "未真正形成八张配合时，逼局方可低位显示另一门八张配合并重定将牌；控制叫前先公开确认当前八张配合，避免自然低花被误解成旧高花的控制/排除问叫。已定另一个将牌时通用终局不能抢用其5C/5D等排除问叫保留叫品；换将要先明确公开，而不是暗中改变解释。",
-            "fit_encoding": "开叫人自然再叫与配合探索共享叫品时，必须取共同保证：新套/加叫同伴花色通常仅保证四张，原套重叫保证五张；伙伴公开下界不足以合成八张时，不把同一叫品解码为已确认八张配合。人工控制叫不附加自然长套保证。精确强阳后的三阶坚固七张套邀扣只在二阶同花色仍合法时成立；应叫2S抬高叫阶后，被迫的3H等不是七张坚固套编码。",
+            "fit_encoding": "开叫人自然再叫与配合探索共享叫品时取全部发送分支的共同保证：新套通常四张，原套重叫五张；逼局中低于成局的支持若也可表示八张配合，支持下界取四张与八减搭档公开套长下界的较小值。五张高花正应后的三张支持不能虚报四张。人工控制叫不附加自然长套保证。精确强阳后的三阶坚固七张套邀扣只在二阶同花色仍合法时成立。",
+            "competitive_forced_rebid": "第四花色等逼局受二阶干扰后，无已确认配合、无敌套止张及五张独立套可完成时，开叫人可在二至四阶自然重叫此前已显示的四张低花，保留逼局交给搭档继续；不补Pass、不强叫无止张3NT，公开只保证四张而不是五张。",
             "slam_commitment": "普通RKCB后至少四关键张和将牌Q，且私有配合评价达到30才选择小满贯；配合评价=本人HCP+搭档公开下界，加本人最长短套的缺门3/单张2与最多2个超过八张的将牌，减本人落在搭档公开单缺的K/Q/J点。这个工程评价不写入公共HCP，也不冒称50%成功率模型；大满贯仍保留全部关键张/Q及37点等原专用门槛。",
             "game_invitation": "自然邀请要求联手上界可达25，且下界23+、或本人比公开下界多2点并满足有限区间中值23/搭档公开11+且本人10+及3控制值。未知40不直接取中值。非低限分支可在下界21等条件邀请；邀请的公共下界取所有发送分支的共同保证，禁止写成已知联手25。三阶高花邀请传递邀局义务和共同点力保证；未定将的自然NT也可在花色重叫后用2NT邀请。接受方仍可低限Pass，不能凭上界单独强迫进局。",
             "late_strong_club_double": "强梅花的低点力特殊双高加倍仅紧接最后一个1C叫品；对方已负应叫或有后续后，不能仅凭最初强梅花标签输出8点X却被公开解释成12点普通技术X。第一介入和公开解释使用相同最近叫品条件。",

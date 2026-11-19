@@ -1,0 +1,51 @@
+{
+  "name": "E010 连续1NT高花协议研究",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "origins": ["module"],
+  "module_contract": "systems/nt-module-v2/contract.json",
+  "research_seed_run": "evo-66b57cf1f0614f0dbd7ae687a55c1f33",
+  "research_seed_parent": "origin",
+  "baselines": [
+    "systems/classics-v5.5.5-compact/ccba.json",
+    "systems/classics-v5.5.5-compact/prec.json"
+  ],
+  "development_sampling": {
+    "name": "自然15–17均型1NT；应叫人至少四张高花",
+    "dealer": "N",
+    "vulnerability": "cycle",
+    "attempt_limit": 1000000,
+    "constraints": {"N": {"hcp": [15, 17]}},
+    "hand_conditions": {
+      "N": {"op": "balanced"},
+      "S": {"op": "or", "args": [
+        {"op": "ge", "args": [{"op": "length", "suit": "S"}, 4]},
+        {"op": "ge", "args": [{"op": "length", "suit": "H"}, 4]}
+      ]}
+    }
+  },
+  "generations": 2,
+  "workers": 2,
+  "boards": {"diagnosis": 32, "validity": 16, "screen": 64, "full": 256, "promotion": 256},
+  "resamples": 2000,
+  "max_agent_requests": 200,
+  "max_agent_tokens": 8000000,
+  "max_output_tokens": 16384,
+  "max_context_bytes": 250000,
+  "max_research_turns": 80,
+  "max_tool_calls": 128,
+  "max_releases": 2,
+  "max_lab_boards": 320,
+  "research_seconds": 3600,
+  "evaluation_seconds": 900,
+  "max_pairs": 20000,
+  "max_seconds": 14400,
+  "allow_promotion": false,
+  "automatic_goal_check": false,
+  "plateau_limit": 0,
+  "model_retries": 2,
+  "model_retry_delay": 5,
+  "research_task": "继续E008已经开始的1NT高花应叫研究。当前开发亲本是E008发布的db87ab4a弱长低花接力版本，不是旧2d3b骨架；E009在预先冻结的弱长低花条件下用128副新牌验证其相对旧亲本+1.25 IMP/副、95%区间[+0.51,+1.99]，实际113副触发新发送。该历史结果不是本轮高花条件成绩，也不是全局晋级。E008第四会话只查阅了转移/Stayman，尚未形成新高花修改，因此从已有工作区接着完成一个具体完整假设，不重建低花接力或通读全体系。优先探索高花发现、转移/Stayman与邀请/成局后续的耦合设计；可整体重设计内部信息编码、规则树和合法接续，旧规则ID与传统叫品映射不是白名单。外围开叫、其他体系分支与原参数接口冻结。当前条件评价固定N为15–17均型、S至少四张高花；所有候选与当前亲本共用新牌，包含真实固定对手竞争。不要用弱低花样本验证高花改动，也不要把全知最优定约当运行策略目标。先记录具体假设，再批读需要的节点/依赖，尽早实现和实际测试，避免反复读相同接口/案例/库存。继承的16项回归断言和旧案例保留，但旧相对2d3b的变化见证已经转为当前亲本回归，旧成绩只作历史；先核对或运行现有测试，新发布必须新增相对db87当前亲本的空前缀自然整副行为变化见证。若高花设计改映射，同步改相应断言并增加边界/干扰测试，不以删测试掩盖失败。合同和测试实际通过后及时发布完整候选，让队列给出条件开发成绩；失败或退步是有效反馈，不强求正收益。每个单元最多80回合，24/48/64只是保持上下文的进度检查点；最多两个不同发布物，成熟后收尾，不为用完预算开启无关方向。预算不足时保存阶段、未解决问题与下一步，不重新查阅已确认内容。上一合同的案例可能保留旧case_id别名，它们是诊断输入，不是独立评测样本。本轮不申请全局晋级或万副验收；所有假设、实际测试、评价结论和交接用简短中文记录。"
+}

@@ -1,12 +1,48 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { activityText, comparisonRows, currentDrafts, durationLabel, elapsedSeconds, impNumber, milestoneSummary, scoredRounds } from "./evolution-view.mjs";
+import { activityText, comparisonRows, comparisonStateText, creditNumber, currentDrafts, durationLabel, elapsedSeconds, impNumber, milestoneSummary, researchEvidenceURL, scoredRounds } from "./evolution-view.mjs";
+import { evaluationScope } from "./evolution-dashboard.mjs";
+
+test("conditional research scores cannot be labelled as uniform global results", () => {
+  assert.equal(evaluationScope({}), "均匀全局开发评价");
+  assert.match(evaluationScope({ development_sampling: { name: "weak long minors" } }), /局部条件.*weak long minors.*不是全局成绩/);
+  assert.match(evaluationScope({ selection_policy: "parent-improvement" }), /上一亲本.*不要求成熟体系/);
+});
+
+test("stopped comparison faults never claim that research is continuing", () => {
+  assert.match(comparisonStateText({ status: "running" }), /仍在运行/);
+  assert.match(comparisonStateText({ status: "blocked" }), /研究已停止/);
+  assert.doesNotMatch(comparisonStateText({ status: "blocked" }), /继续|仍在运行/);
+  assert.match(comparisonStateText({ status: "continued", continuation: { id: "next" } }), /交接新实验.*不迁移旧分数/);
+});
+
+test("resource receipts distinguish zero consumption from unknown amounts", () => {
+  assert.equal(creditNumber(0), "0.00");
+  assert.equal(creditNumber(1.2345), "1.23");
+  for (const value of [undefined, null, NaN, true]) assert.equal(creditNumber(value), "—");
+  assert.equal(activityText({ status: "running", activity: { kind: "tool", name: "run_contract" } }), "执行模块合同");
+});
+
+test("full evidence links stay inside the selected run and validate opaque identifiers", () => {
+  const base = `/api/evolutions/evo-${"1".repeat(32)}/research/g001-Z`;
+  assert.equal(researchEvidenceURL(base, { pointer: "/last_tests" }), `${base}/evidence?pointer=%2Flast_tests`);
+  assert.equal(researchEvidenceURL(base, { result_id: "a".repeat(64) }), `${base}/results/${"a".repeat(64)}`);
+  assert.match(researchEvidenceURL(base, { session: `eval-q-${"b".repeat(20)}`, pointer: "/last_tests" }), /research\/eval-q-/);
+  assert.throws(() => researchEvidenceURL("https://example.test", { pointer: "" }));
+  assert.throws(() => researchEvidenceURL(base, { result_id: "../secret" }));
+  assert.throws(() => researchEvidenceURL(base, { session: "../../outside", pointer: "" }));
+  assert.throws(() => researchEvidenceURL(base, { pointer: "relative" }));
+});
 
 test("live model waits are distinct from tools, DDS evaluation and stopped jobs", () => {
   assert.match(activityText({ status: "running", activity: { kind: "model", request: 8, label: "g001-Z:turn:8" } }), /等待Astra.*第8次/);
   assert.match(activityText({ status: "running", activity: { kind: "model", request: 9, label: "g001-Z:review" } }), /独立讨论/);
   assert.equal(activityText({ status: "running", activity: { kind: "tool", name: "run_tests" } }), "执行测试");
+  assert.match(activityText({ status: "running", activity: { kind: "tool", name: "audit_repair" } }), /维护差分回归.*CPU.*不等待模型/);
+  assert.match(activityText({ status: "running", activity: { kind: "tool", name: "replay_incidents" } }), /空叫牌.*原始反例/);
+  assert.match(activityText({ status: "running", activity: { kind: "tool", name: "run_engine_tests" } }), /实际框架回归测试/);
   assert.match(activityText({ status: "running", activity: { kind: "evaluation" } }), /真实DDS/);
+  assert.match(activityText({ status: "running", activity: { kind: "evaluation", stage: "regressions" } }), /回归.*不调用模型/);
   assert.match(activityText({ status: "running", activity: { kind: "model_retry", delay: 5, attempt: 1, model: "gpt-6-astra" } }), /第1次重试.*gpt-6-astra/);
   assert.match(activityText({ status: "completed", activity: { kind: "model" } }), /已结束/);
   assert.equal(activityText({ status: "failed", error: "DDS unavailable" }), "DDS unavailable");
@@ -47,6 +83,7 @@ test("comparison rows keep the selected round's common sample, opponents and per
   assert.equal(rows[2].status, "invalid");
   assert.deepEqual(rows[0].means, [0, 0]);
   assert.deepEqual(comparisonRows(run, "missing"), []);
+  assert.equal(comparisonRows({ ...run, selection_policy: "parent-improvement" }, "g001-full")[1].label, "Z 当前开发亲本");
 });
 
 test("exploratory scores are explicitly separated and cannot overwrite a formal round", () => {
@@ -57,6 +94,8 @@ test("exploratory scores are explicitly separated and cannot overwrite a formal 
 });
 
 test("important milestones distinguish hypotheses, test coverage, exploration and confirmed promotion", () => {
+  assert.match(activityText({ status: "running", activity: { kind: "model", label: "campaign:manager:review", request: 9 } }), /全局管理者.*第9次/);
+  assert.match(activityText({ status: "running", activity: { kind: "manager" } }), /验收阶段成果/);
   assert.match(milestoneSummary({ kind: "hypothesis", summary: "探索新编码，不是已确认提升" }), /不是已确认/);
   assert.match(milestoneSummary({ kind: "tests", tests: { passed: 4, tests: 5, failed: 1, change_witnesses: 2 } }), /4\/5通过，1失败/);
   assert.match(milestoneSummary({ kind: "trial", boards: 16, status: "checked", delta: .5 }), /不是晋级证据/);

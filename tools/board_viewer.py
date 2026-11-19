@@ -42,9 +42,12 @@ from bridge_evolve.oracle import DDTable, DDSAdapter, DDSError, DDSUnavailableEr
 from bridge_evolve.oracle.diagnostics import validate_diagnostics
 from bridge_evolve.oracle.pbn import deal_from_pbn, deal_to_pbn
 from bridge_evolve.systems import load_system, render_system, validate_system
+from bridge_evolve.systems.external import SCHEMA as EXTERNAL_SCHEMA, external_identity
 from bridge_evolve.systems.inputs import Board, parse_board, run_auction
 from bridge_evolve.systems.language import SystemError, parse_call, thaw
 from bridge_evolve.systems.navigation import query_system
+from bridge_evolve.systems.review import review_position, review_request
+from bridge_evolve.systems.language import SystemError
 from bridge_evolve.systems.runtime import boolean, replay
 from bridge_evolve.systems.v2_runtime import PublicContext, PublicWorld
 
@@ -532,6 +535,14 @@ def annotate_public_meanings(record: dict, definitions: dict | None = None, *, p
                         for step in table["auction"]]
         meanings = explain_public_auction(public_steps, record["dealer"], record["vulnerability"], public_definitions)
         for step, meaning in zip(table["auction"], meanings, strict=True):
+            if step.get("source") == "external" and step.get("explanation_available") is False:
+                meaning = {
+                    "schema_version": 1, "summary": f"{step['call']}：外部神经叫牌，精确含义不可用。",
+                    "purpose": "冻结模型的合法叫品，不从私有推理输出推导公开保证。",
+                    "basis": "opaque-external-policy", "public_transition_id": "",
+                    "new_information": [], "retained_information": [], "notes": [],
+                    "warnings": ["没有声明自然/人工标签、点力或套长保证；不能把叫品字面花色当作其约定含义。"],
+                }
             step["public_explanation"] = meaning
 
 
@@ -798,6 +809,11 @@ def load_run(directory: Path, public_definitions: dict | None = None) -> dict:
             identity = run[role]["hash"]
             path = directory / "systems" / f"{identity}.json"
             if path.is_file():
+                raw = json.loads(path.read_text(encoding="utf8"))
+                if isinstance(raw, dict) and raw.get("schema") == EXTERNAL_SCHEMA:
+                    if external_identity(raw) != identity:
+                        raise ValueError("Frozen external baseline identity mismatch.")
+                    continue
                 system = load_system(path)
                 if system.content_hash != identity:
                     raise ValueError("Frozen public explanation system identity mismatch.")
@@ -845,7 +861,7 @@ def normalize_record(raw: dict, index: int, source: str) -> dict:
         record["label"] = raw["label"]
     if "audit_result" in raw:
         result = raw["audit_result"]
-        if (not isinstance(result, dict) or result.get("status") not in ("checked", "failed", "completed-with-findings")
+        if (not isinstance(result, dict) or result.get("status") not in ("checked", "failed", "completed-with-findings", "adjudicated")
                 or not isinstance(result.get("errors"), list)):
             raise ValueError("Invalid per-board audit result.")
         for error in result["errors"]:
@@ -896,7 +912,14 @@ def normalize_record(raw: dict, index: int, source: str) -> dict:
         record["tables"].append({**table, "id": f"table{table_index + 1}", "auction": steps,
                                   "contract": final, "tricks": tricks, "score_ns": score,
                                   "systems": systems})
-    if any(table.get("error") for table in record["tables"]) and record.get("audit_result", {}).get("status") != "failed":
+    if "adjudication" in raw:
+        from bridge_evolve.evolution.faults import validate_adjudication
+        record["adjudication"] = copy.deepcopy(raw["adjudication"])
+        validate_adjudication(record)
+    elif record.get("audit_result", {}).get("status") == "adjudicated":
+        raise ValueError("An adjudicated record requires its explicit scoring decision and original error.")
+    if (any(table.get("error") for table in record["tables"])
+            and record.get("audit_result", {}).get("status") not in ("failed", "adjudicated")):
         raise ValueError("A table execution error requires a failed per-board audit result.")
     record["id"] = raw.get("id") or canonical_hash({"source": source, "number": number, "hands": record["hands"]})[:24]
     update_comparison(record)
@@ -909,6 +932,11 @@ def normalize_record(raw: dict, index: int, source: str) -> dict:
 
 def update_comparison(record: dict) -> None:
     tables = record["tables"]
+    if record.get("adjudication"):
+        from bridge_evolve.evolution.faults import validate_adjudication
+        validate_adjudication(record)
+        record["difference"] = classify(record)
+        return
     if record.get("audit_result", {}).get("status") == "failed":
         record["imp"], record["point_difference"] = None, None
         record["difference"] = classify(record)
@@ -1120,7 +1148,12 @@ def import_file(contents: bytes, filename: str, public_definitions: dict | None 
                 if len(matches) > 1:
                     raise ValueError("ZIP中存在重复的冻结体系定义。")
                 if matches:
-                    system = validate_system(json.loads(archive.read(matches[0])))
+                    raw = json.loads(archive.read(matches[0]))
+                    if isinstance(raw, dict) and raw.get("schema") == EXTERNAL_SCHEMA:
+                        if external_identity(raw) != identity:
+                            raise ValueError("ZIP中的冻结外部模型身份不匹配。")
+                        continue
+                    system = validate_system(raw)
                     if system.content_hash != identity:
                         raise ValueError("ZIP中的冻结公开体系身份不匹配。")
                     definitions[identity] = system
@@ -1325,13 +1358,13 @@ def human_auction(payload: dict) -> dict:
             "contract": contract_data(final_contract(auction)) if auction.ended else None}
 
 
-def sampling_config(payload: dict, *, generate_seed: bool = True) -> dict:
+def sampling_config(payload: dict, *, generate_seed: bool = True, max_count: int = 1000) -> dict:
     def number(value, name, low, high):
         if type(value) is not int or not low <= value <= high:
             raise ValueError(f"{name}须为{low}到{high}的整数。")
         return value
 
-    count = number(payload.get("count", 100), "牌数", 1, 1000)
+    count = number(payload.get("count", 100), "牌数", 1, max_count)
     workers = min(count, number(payload.get("workers", 1 if count < 64 else min(2, os.cpu_count() or 1)),
                                 "审计进程数", 1, 4))
     seed = payload.get("seed")
@@ -1339,7 +1372,9 @@ def sampling_config(payload: dict, *, generate_seed: bool = True) -> dict:
         seed = random.SystemRandom().randrange(2**53) if generate_seed else None
     else:
         seed = number(seed, "种子", 0, 2**53 - 1)
-    limit = number(payload.get("attempt_limit", max(10000, count * 1000)), "发牌尝试上限", count, 1000000)
+    max_attempts = min(100000000, max_count * 1000)
+    limit = number(payload.get("attempt_limit", min(max_attempts, max(10000, count * 1000))),
+                   "发牌尝试上限", count, max_attempts)
     dealer, vulnerability = payload.get("dealer", "cycle"), payload.get("vulnerability", "cycle")
     if dealer not in (*SEATS, "cycle") or vulnerability not in ("none", "ns", "ew", "both", "cycle"):
         raise ValueError("发牌人或局况无效。")
@@ -1380,7 +1415,7 @@ def audit_error(stage: str, error: Exception, table: str | None = None) -> dict:
             **{key: getattr(error, key) for key in ("actor", "system_hash") if getattr(error, key, None) is not None}}
 
 
-def sampled_boards(config: dict, progress=None, cancelled=None):
+def sampled_boards(config: dict, progress=None, cancelled=None, *, accept=None):
     rng = random.Random(config["seed"])
     deck = list(full_deck())
     families = set()
@@ -1401,14 +1436,16 @@ def sampled_boards(config: dict, progress=None, cancelled=None):
                 break
         if valid:
             deal = Deal(*(Hand(tuple(cards)) for cards in chunks))
+            dealer = Seat(SEATS[accepted % 4] if config["dealer"] == "cycle" else config["dealer"])
+            vulnerability = Vulnerability(
+                list(Vulnerability)[((accepted // 4) + accepted) % 4].value
+                if config["vulnerability"] == "cycle" else config["vulnerability"])
+            board = Board(deal, dealer, vulnerability)
+            if accept is not None and not accept(board):
+                continue
             family = family_hash(deal)
             if family not in families:
                 families.add(family)
-                dealer = Seat(SEATS[accepted % 4] if config["dealer"] == "cycle" else config["dealer"])
-                vulnerability = Vulnerability(
-                    list(Vulnerability)[((accepted // 4) + accepted) % 4].value
-                    if config["vulnerability"] == "cycle" else config["vulnerability"])
-                board = Board(deal, dealer, vulnerability)
                 accepted += 1
                 if progress:
                     progress(attempt, accepted)
@@ -1683,6 +1720,7 @@ class ViewerState(BoardAuditEngine):
         self.cache = {}
         self.audit_cache: tuple[str, str, dict] | None = None
         self.index_cache = OrderedDict()
+        self.protocol_snapshots = OrderedDict()
         self.index_lock = threading.RLock()
         self.lock = threading.Lock()
         self.workspace = self.project / ".runtime/board-viewer"
@@ -1731,6 +1769,11 @@ class ViewerState(BoardAuditEngine):
                 if not isinstance(content_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", content_hash):
                     raise ValueError("Invalid frozen system identity.")
                 path = entry["path"] / "systems" / f"{content_hash}.json"
+                raw = json.loads(path.read_text(encoding="utf8"))
+                if isinstance(raw, dict) and raw.get("schema") == EXTERNAL_SCHEMA:
+                    if external_identity(raw) != content_hash:
+                        raise ValueError(f"Frozen external baseline identity mismatch: {path}.")
+                    continue
                 system = load_system(path)
                 if system.scope != "general" or system.content_hash != content_hash:
                     raise ValueError(f"Frozen system identity mismatch: {path}.")
@@ -1880,7 +1923,11 @@ class ViewerState(BoardAuditEngine):
                            "reasoning_effort", "max_agent_requests", "max_agent_tokens", "max_output_tokens", "max_pairs",
                            "max_seconds", "max_research_turns", "max_tool_calls", "max_releases", "max_lab_boards",
                            "research_seconds", "research_task", "max_context_bytes", "plateau_limit", "research_seed_run", "champion_seed_run",
-                           "benchmark_revision_reason", "model_retries", "model_retry_delay"}:
+                           "benchmark_revision_reason", "model_retries", "model_retry_delay",
+                           "research_architecture", "hypotheses_per_unit", "repair_attempts",
+                           "research_budget_mode", "max_trial_boards", "maintenance_budget", "max_promotions", "agent_timeout",
+                           "protocol_goal", "selection_policy", "allow_promotion", "automatic_goal_check",
+                           "baseline_fault_policy", "development_sampling", "growth_boards", "growth_seconds"}:
             raise ValueError("不支持的进化实验配置。")
         identities = [payload.get("system_a"), payload.get("system_b")]
         if any(not isinstance(identity, str) or identity not in self.systems for identity in identities):
@@ -1897,6 +1944,17 @@ class ViewerState(BoardAuditEngine):
             paths = [self.systems[identity]["path"].resolve() for identity in identities]
             config = {**{key: value for key, value in payload.items() if key not in ("system_a", "system_b")},
                       "baselines": [str(path) for path in paths]}
+            seed_run = payload.get("champion_seed_run") or payload.get("research_seed_run")
+            if seed_run:
+                previous = json.loads((self.evolution_directory(seed_run) / "config.json").read_text())
+                for field in ("protocol_goal", "selection_policy", "allow_promotion", "automatic_goal_check",
+                              "baseline_fault_policy", "development_sampling", "growth_boards", "growth_seconds"):
+                    if field in previous:
+                        config.setdefault(field, previous[field])
+                if previous.get("module_contract"):
+                    config.update(module_contract=previous["module_contract"]["path"], origins=["module"])
+                    if payload.get("research_seed_run"):
+                        config["research_seed_parent"] = "origin"
             directory = initialize(config, project=self.project,
                                    preloaded={path: self.systems[identity]["system"] for path, identity in zip(paths, identities, strict=True)})
             state = status(directory)
@@ -1905,7 +1963,7 @@ class ViewerState(BoardAuditEngine):
             self.evolution_jobs[directory.name] = self.executor.submit(self.execute_evolution, directory)
         return self.evolution_detail(directory.name)
 
-    def resume_evolution(self, identifier: str) -> dict:
+    def resume_evolution(self, identifier: str, *, evaluation_only=False, repair_only=False) -> dict:
         from bridge_evolve.evolution.config import save_json
         from bridge_evolve.evolution.controller import Controller, status
         self.require_current_evolution_runtime()
@@ -1917,17 +1975,40 @@ class ViewerState(BoardAuditEngine):
                 raise ValueError("已有进化实验正在运行或排队。")
             state = status(directory)
             (directory / "cancel-requested").unlink(missing_ok=True)
-            state.update(status="queued", phase="等待继续", updated_at=timestamp())
+            state.update(status="queued", phase="等待候选评价" if evaluation_only else "等待继续", updated_at=timestamp())
             save_json(directory / "state.json", state)
-            self.evolution_jobs[identifier] = self.executor.submit(self.execute_evolution, directory)
+            self.evolution_jobs[identifier] = self.executor.submit(self.execute_evolution, directory,
+                evaluation_only=evaluation_only, **({"repair_only": True} if repair_only else {}))
         return self.evolution_detail(identifier)
 
-    def execute_evolution(self, directory: Path) -> None:
+    def repair_evolution(self, identifier: str) -> dict:
+        from bridge_evolve.evolution.config import engine_identity, save_json
+        from bridge_evolve.evolution.controller import status
+        from bridge_evolve.evolution.handoff import initialize_maintenance
+        self.require_current_evolution_runtime()
+        self.require_visible(identifier)
+        source = self.evolution_directory(identifier)
+        previous = status(source)
+        if previous.get("continuation"):
+            return self.evolution_detail(previous["continuation"]["id"])
+        if previous["engine_hash"] == engine_identity():
+            return self.resume_evolution(identifier, repair_only=True)
+        with self.jobs_lock:
+            if any(row["status"] in ("queued", "running") for row in self.evolution_history()["experiments"]):
+                raise ValueError("已有进化实验正在运行或排队。")
+            directory = initialize_maintenance(source)
+            current = status(directory)
+            current.update(status="queued", phase="在新引擎维修历史故障")
+            save_json(directory / "state.json", current)
+            self.evolution_jobs[directory.name] = self.executor.submit(self.execute_evolution, directory, repair_only=True)
+        return self.evolution_detail(directory.name)
+
+    def execute_evolution(self, directory: Path, *, evaluation_only=False, repair_only=False) -> None:
         from bridge_evolve.evolution.config import save_json
         from bridge_evolve.evolution.controller import run, status
         try:
             self.require_current_evolution_runtime()
-            run(directory)
+            run(directory, evaluation_only=evaluation_only, **({"repair_only": True} if repair_only else {}))
         except (OSError, ValueError, RuntimeError) as error:
             LOGGER.exception("Evolution controller failed: %s", directory.name)
             state = status(directory)
@@ -1962,7 +2043,7 @@ class ViewerState(BoardAuditEngine):
                 manifest = self.runs[identifier]["manifest"]
                 hashes = {manifest[role]["hash"] for role in ("system_a", "system_b")}
                 self.cache[identifier] = load_run(self.runs[identifier]["path"],
-                    {identity: self.systems[identity]["system"] for identity in hashes})
+                    {identity: self.systems[identity]["system"] for identity in hashes if identity in self.systems})
             return self.cache[identifier]
 
     def _load_audit_bundle(self, identifier: str, job: dict, report: dict) -> dict:
@@ -2133,6 +2214,148 @@ class ViewerState(BoardAuditEngine):
         system = self.systems[identifier]["system"]
         return {"name": system.name, "hash": identifier, "specification": render_system(system)}
 
+    def protocol_definition(self, identity: str, evolution: str | None = None):
+        if not isinstance(identity, str):
+            raise ValueError("体系标识必须是字符串。")
+        if evolution is not None:
+            from bridge_evolve.evolution.inspection import frozen_system_export
+            self.require_visible(evolution)
+            return validate_system(json.loads(frozen_system_export(self.evolution_directory(evolution), identity, "json")))
+        if identity not in self.systems:
+            raise ValueError("本机未登记该体系版本。")
+        return self.systems[identity]["system"]
+
+    def protocol_sources(self, evolution: str | None = None) -> dict:
+        if evolution is None:
+            return {"sources": [{"kind": "frozen", "hash": identity, "name": item["system"].name,
+                                 "label": "已登记体系 · " + item["system"].name, "parent": None}
+                                for identity, item in self.systems.items()]}
+        from bridge_evolve.evolution.controller import status
+        from bridge_evolve.evolution.inspection import system_metadata
+        self.require_visible(evolution)
+        directory = self.evolution_directory(evolution)
+        state = status(directory)
+        sources = []
+        for path in state["system_files"]:
+            match = re.fullmatch(r"systems/([0-9a-f]{64})\.json", path)
+            if match is None:
+                continue
+            identity = match[1]
+            metadata = system_metadata(directory, state, identity)
+            candidate = state.get("candidate_archive", {}).get(identity, {})
+            job = next((row for row in state.get("evaluation_queue", {}).values() if row["candidate"] == identity), {})
+            label = "当前冠军" if identity in state["champions"].values() else "已冻结体系"
+            sources.append({"kind": "frozen", "hash": identity, "name": metadata["name"],
+                            "label": label + " · " + metadata["name"],
+                            "parent": candidate.get("parent") or job.get("parent")})
+        for identity, metadata in {**state.get("research_branches", {}), **state.get("research_sessions", {})}.items():
+            title = metadata.get("assignment", {}).get("title") or metadata.get("title") or "未命名研究任务"
+            sources.append({"kind": "draft", "session": identity, "name": title,
+                            "label": "未发布草稿 · " + title, "parent": metadata["parent"]})
+        return {"sources": sources, "run": state["id"], "name": state["name"]}
+
+    def protocol_source(self, source: dict, evolution: str | None):
+        if not isinstance(source, dict) or source.get("kind") not in ("frozen", "draft"):
+            raise ValueError("请选择已登记体系或研究草稿。")
+        if source["kind"] == "frozen":
+            if set(source) != {"kind", "hash"}:
+                raise ValueError("冻结体系仅接受kind与hash。")
+            system = self.protocol_definition(source["hash"], evolution)
+            metadata = next(row for row in self.protocol_sources(evolution)["sources"]
+                            if row["kind"] == "frozen" and row["hash"] == system.content_hash)
+            return system, {**metadata, "snapshot": system.content_hash, "status": "已冻结"}
+        if evolution is None or set(source) - {"kind", "session", "snapshot"} or not isinstance(source.get("session"), str):
+            raise ValueError("研究草稿需要实验和已登记的研究会话。")
+        from bridge_evolve.evolution.controller import status
+        from bridge_evolve.evolution.inspection import checked_artifact
+        self.require_visible(evolution)
+        directory = self.evolution_directory(evolution)
+        state = status(directory)
+        session = source["session"]
+        metadata = state.get("research_sessions", {}).get(session) or state.get("research_branches", {}).get(session)
+        if metadata is None:
+            raise ValueError("研究会话或保留分支不存在。")
+        expected = source.get("snapshot")
+        if expected is not None and (not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{64}", expected) is None):
+            raise ValueError("草稿快照身份无效。")
+        key = (evolution, session, expected)
+        with self.index_lock:
+            if expected is not None and key in self.protocol_snapshots:
+                system, description = self.protocol_snapshots[key]
+                self.protocol_snapshots.move_to_end(key)
+                return system, dict(description)
+        workspace = checked_artifact(directory, metadata["workspace"])
+        system = validate_system(workspace["system"])
+        if expected is not None and expected != system.content_hash:
+            raise ValueError("草稿已经更新，原快照缓存已释放；请刷新草稿。没有替换为新版本。")
+        description = {"kind": "draft", "session": session, "hash": system.content_hash,
+                       "snapshot": system.content_hash, "name": system.name, "parent": metadata["parent"],
+                       "label": metadata.get("assignment", {}).get("title") or metadata.get("title") or system.name,
+                       "status": "未发布草稿；此快照不代表验证、DDS或晋升"}
+        with self.index_lock:
+            self.protocol_snapshots[(evolution, session, system.content_hash)] = (system, dict(description))
+            while len(self.protocol_snapshots) > 32:
+                self.protocol_snapshots.popitem(last=False)
+        return system, description
+
+    def protocol_review(self, payload: dict) -> dict:
+        if set(payload) - {"evolution", "source", "request", "side", "opponent", "compare_to"}:
+            raise ValueError("体系审查包含未知字段。")
+        evolution = payload.get("evolution")
+        if evolution is not None and (not isinstance(evolution, str) or re.fullmatch(r"evo-[0-9a-f]{32}", evolution) is None):
+            raise ValueError("实验标识无效。")
+        system, source = self.protocol_source(payload.get("source"), evolution)
+        _, _, _, _, auction = review_request(payload.get("request", {}))
+        side = payload.get("side", auction.next_seat.partnership.value)
+        if side not in ("NS", "EW"):
+            raise ValueError("请选择南北或东西使用此体系。")
+        other = "EW" if side == "NS" else "NS"
+        opponent = payload.get("opponent")
+        definitions = {other: system if opponent == "same" else self.protocol_definition(opponent, evolution)} if opponent else {}
+
+        def decorate(result, primary, *, draft=False):
+            def information(contexts):
+                return [{"seat": seat, "known_system": partnership in contexts,
+                         "claims": public_claim_text(public_person_bounds(contexts[partnership], seat)) if partnership in contexts else [],
+                         "bounds": public_person_bounds(contexts[partnership], seat) if partnership in contexts else {}}
+                        for seat in SEATS for partnership in ("NS" if seat in ("N", "S") else "EW",)]
+
+            contexts = result.pop("public_contexts")
+            result["public_information"] = information(contexts)
+            result["engineering"] = {"public_contexts": contexts}
+            selected = result.get("selected")
+            if selected and selected["public_meaning"]:
+                meaning = selected["public_meaning"]
+                acting = definitions.get(other) if auction.next_seat.partnership.value == other else primary
+                selected["explanation"] = describe_public_call(meaning["actor"], parse_call(meaning["call"]),
+                    meaning["before"], meaning["after"], history=tuple(parse_call(call) for call in result["history"]),
+                    updates=meaning["updated_parameters"], tags=meaning["tags"], classic=classic_public_protocol(acting),
+                    basis="draft-public-protocol" if draft else "frozen-public-protocol", transition_id=meaning["transition_id"])
+                selected["public_information_after"] = information(selected.pop("public_contexts_after"))
+            return result
+
+        result = decorate(review_position(system, payload.get("request", {}), definitions=definitions, side=side), system,
+                          draft=source["kind"] == "draft")
+        result["source"] = source
+        compare = payload.get("compare_to")
+        if compare:
+            if auction.next_seat.partnership.value != side:
+                result["comparison_note"] = "当前轮到另一方；回到本方行动时比较本方叫品。"
+            else:
+                identity = source.get("parent") if compare == "parent" else compare
+                if identity is None:
+                    raise ValueError("此来源未登记亲本，请选择一个已冻结版本。")
+                parent = self.protocol_definition(identity, evolution)
+                try:
+                    comparison = review_position(parent, payload.get("request", {}), definitions=definitions, side=side)
+                except SystemError as error:
+                    result["comparison_error"] = f"对照版本不能解释相同公开进程，未生成对比结论：{error}"
+                else:
+                    comparison = decorate(comparison, parent)
+                    comparison["source"] = {"name": parent.name, "hash": parent.content_hash}
+                    result["comparison"] = comparison
+        return result
+
     def system_query(self, identifier: str, payload: dict, evolution: str | None = None) -> dict:
         if set(payload) - {"request", "compare_to", "public_systems"}:
             raise ValueError("体系查询包含未知字段。")
@@ -2140,14 +2363,7 @@ class ViewerState(BoardAuditEngine):
             self.require_visible(evolution)
 
         def definition(identity):
-            if not isinstance(identity, str):
-                raise ValueError("体系标识必须是字符串。")
-            if evolution is not None:
-                from bridge_evolve.evolution.inspection import frozen_system_export
-                return validate_system(json.loads(frozen_system_export(self.evolution_directory(evolution), identity, "json")))
-            if identity not in self.systems:
-                raise ValueError("本机未登记该体系版本。")
-            return self.systems[identity]["system"]
+            return self.protocol_definition(identity, evolution)
 
         system = definition(identifier)
         public = payload.get("public_systems", {})
@@ -2738,6 +2954,9 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 return self.json_response(state.library_entries())
             if path == "/api/evolutions":
                 return self.json_response(state.evolution_history())
+            if path == "/api/protocol-sources":
+                query = parse_qs(urlsplit(self.path).query)
+                return self.json_response(state.protocol_sources(query.get("evolution", [None])[0]))
             if path == "/api/evolution-models":
                 from bridge_evolve.evolution.models import available_models
                 from bridge_evolve.evolution.config import DEFAULT_MODEL
@@ -2749,7 +2968,29 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 query = parse_qs(urlsplit(self.path).query)
                 return self.json_response(timeline(state.evolution_directory(evolution_timeline[1]),
                     offset=int(query["offset"][0]) if "offset" in query else None, limit=int(query.get("limit", ["50"])[0])))
-            research = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/research/(g[0-9]{3}-[ABZ])", path)
+            repair_export = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/repairs/(repair-[0-9a-f]{20})/candidate", path)
+            if repair_export:
+                from bridge_evolve.evolution.controller import status
+                from bridge_evolve.evolution.inspection import checked_artifact
+                state.require_visible(repair_export[1])
+                directory = state.evolution_directory(repair_export[1])
+                job = status(directory).get("repair_jobs", {}).get(repair_export[2])
+                if job is None or job["status"] != "accepted_for_next_run":
+                    raise ValueError("修复版本尚未通过独立验收。")
+                return self.respond(json.dumps(checked_artifact(directory, job["candidate_path"]), ensure_ascii=False).encode(),
+                                    "application/json", filename="baseline-completion.json")
+            repair_details = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/repairs/(repair-[0-9a-f]{20})", path)
+            if repair_details:
+                from bridge_evolve.evolution.inspection import repair_detail
+                state.require_visible(repair_details[1])
+                return self.json_response(repair_detail(state.evolution_directory(repair_details[1]), repair_details[2]))
+            research = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/research/(g[0-9]{3}-[ABZ](?:-h[0-9]{2})?)", path)
+            solution = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/solutions/(solution-[0-9a-f]{24})", path)
+            if solution:
+                from bridge_evolve.evolution.inspection import solution_export
+                state.require_visible(solution[1])
+                return self.respond(solution_export(state.evolution_directory(solution[1]), solution[2]),
+                                    "application/json", filename="current-best-solution.json")
             if research:
                 from bridge_evolve.evolution.inspection import research_detail
                 state.require_visible(research[1])
@@ -2757,6 +2998,14 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 return self.json_response(research_detail(state.evolution_directory(research[1]), research[2],
                     offset=int(query["offset"][0]) if "offset" in query else None, limit=int(query.get("limit", ["50"])[0]),
                     tool_call=query.get("tool_call", [None])[0]))
+            research_evidence = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/research/((?:g[0-9]{3}-[ABZ](?:-h[0-9]{2})?)|(?:eval-q-[0-9a-f]{20}))/(evidence|results/([0-9a-f]{64}))", path)
+            if research_evidence:
+                from bridge_evolve.evolution.inspection import research_evidence_export
+                state.require_visible(research_evidence[1])
+                query = parse_qs(urlsplit(self.path).query)
+                contents = research_evidence_export(state.evolution_directory(research_evidence[1]), research_evidence[2],
+                    result_id=research_evidence[4], pointer=query.get("pointer", [""])[0])
+                return self.respond(contents, "application/json", filename="research-evidence.json")
             proposals = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/proposals/(g[0-9]{3}-[ABZ])", path)
             if proposals:
                 from bridge_evolve.evolution.inspection import checked_artifact
@@ -2769,6 +3018,18 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 contents = frozen_system_export(state.evolution_directory(system_export[1]), system_export[2], system_export[3])
                 return self.respond(contents, "application/json" if system_export[3] == "json" else "text/markdown; charset=utf-8",
                                     filename=f"{system_export[2]}.{system_export[3]}")
+            contract_export = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/module-contract", path)
+            if contract_export:
+                from bridge_evolve.evolution.inspection import module_contract_export
+                state.require_visible(contract_export[1])
+                return self.respond(module_contract_export(state.evolution_directory(contract_export[1])),
+                                    "application/json", filename="module-contract.json")
+            resources = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/resources", path)
+            if resources:
+                from bridge_evolve.evolution.costs import resource_summary
+                from bridge_evolve.evolution.controller import status
+                state.require_visible(resources[1])
+                return self.json_response(resource_summary(status(state.evolution_directory(resources[1]))))
             evolution = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})(/report)?", path)
             if evolution:
                 if evolution[2]:
@@ -2776,7 +3037,13 @@ class ViewerHandler(BaseHTTPRequestHandler):
                     document = state.evolution_directory(evolution[1]) / "report.md"
                     if not document.is_file():
                         raise ValueError("实验报告尚未生成。")
-                    return self.respond(document.read_bytes(), "text/markdown; charset=utf-8", filename=evolution[1] + ".md")
+                    query = parse_qs(urlsplit(self.path).query)
+                    if query.get("raw") == ["1"]:
+                        contents = document.read_bytes()
+                    else:
+                        from bridge_evolve.evolution.inspection import readable_report
+                        contents = readable_report(state.evolution_directory(evolution[1]))
+                    return self.respond(contents, "text/markdown; charset=utf-8", filename=evolution[1] + ".md")
                 return self.json_response(state.evolution_detail(evolution[1]))
             evolution_pair = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/rounds/([a-zA-Z0-9-]+)/pairs/([0-9a-f]{64})/([0-9a-f]{64})", path)
             if evolution_pair:
@@ -2827,6 +3094,8 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 return self.json_response(state.system(path.removeprefix("/api/systems/")))
             assets = ROOT / "tools/board-viewer"
             known = {"/": assets / "index.html", "/app.mjs": assets / "app.mjs", "/styles.css": assets / "styles.css",
+                     "/protocol-review": assets / "protocol-review.html",
+                     "/protocol-review.mjs": assets / "protocol-review.mjs",
                      "/review-filters.mjs": assets / "review-filters.mjs",
                      "/auction-stats.mjs": assets / "auction-stats.mjs",
                      "/vendor/lucide.js": assets / "node_modules/lucide/dist/umd/lucide.min.js"}
@@ -2869,6 +3138,8 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 return self.json_response(self.server.state.organize_library(payload))
             if parsed.path == "/api/evolutions":
                 return self.json_response(self.server.state.start_evolution(payload), 202)
+            if parsed.path == "/api/protocol-review":
+                return self.json_response(self.server.state.protocol_review(payload))
             system_query = re.fullmatch(r"/api/systems/([0-9a-f]{64})/query", parsed.path)
             if system_query:
                 return self.json_response(self.server.state.system_query(system_query[1], payload))
@@ -2883,6 +3154,16 @@ class ViewerHandler(BaseHTTPRequestHandler):
             evolution_resume = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/resume", parsed.path)
             if evolution_resume:
                 return self.json_response(self.server.state.resume_evolution(evolution_resume[1]), 202)
+            evolution_evaluate = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/evaluate", parsed.path)
+            if evolution_evaluate:
+                if payload:
+                    raise ValueError("继续评价不能修改冻结配置。")
+                return self.json_response(self.server.state.resume_evolution(evolution_evaluate[1], evaluation_only=True), 202)
+            evolution_repair = re.fullmatch(r"/api/evolutions/(evo-[0-9a-f]{32})/repair", parsed.path)
+            if evolution_repair:
+                if payload:
+                    raise ValueError("待命修复不能改动冻结预算或评分策略。")
+                return self.json_response(self.server.state.repair_evolution(evolution_repair[1]), 202)
             selected_export = re.fullmatch(r"/api/runs/([^/]+)/export", parsed.path)
             if selected_export:
                 contents, content_type, filename = self.server.state.export_selected(selected_export[1], payload)

@@ -1,0 +1,63 @@
+{
+  "name": "E017 完整阶段覆盖优先研究",
+  "profile": "pilot",
+  "source": "research",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "baselines": [
+    ".runtime/evolution/evo-a6b25c793ce842b9a8da6a16035fe5c0/systems/568ef458bc6cbf7a1a6e5204c205b6bc07db3b2f5eacab089c49c17f1582fcf5.json",
+    ".runtime/evolution/evo-a6b25c793ce842b9a8da6a16035fe5c0/systems/3bf2f67f0bf2360e0a3b84622d6a75f25d8ba3f73a1048b26ed773af1dca16a1.json"
+  ],
+  "champion_seed_run": "evo-a6b25c793ce842b9a8da6a16035fe5c0",
+  "repair_seed_run": "evo-a6b25c793ce842b9a8da6a16035fe5c0",
+  "evaluation_sources": [
+    "evo-a6b25c793ce842b9a8da6a16035fe5c0"
+  ],
+  "origins": ["blank"],
+  "modules": ["*"],
+  "protocol_goal": "forcing-pass",
+  "research_architecture": "director",
+  "research_budget_mode": "campaign",
+  "generations": 48,
+  "hypotheses_per_unit": 2,
+  "workers": 4,
+  "boards": {
+    "diagnosis": 128,
+    "validity": 64,
+    "screen": 256,
+    "full": 1024,
+    "promotion": 2048
+  },
+  "resamples": 2000,
+  "max_agent_requests": 10000,
+  "max_agent_tokens": 600000000,
+  "max_pairs": 10000000,
+  "max_seconds": 259200,
+  "max_research_turns": 4000,
+  "max_tool_calls": 5000,
+  "research_seconds": 43200,
+  "max_context_bytes": 2000000,
+  "max_output_tokens": 128000,
+  "agent_timeout": 900,
+  "max_releases": 16,
+  "max_lab_boards": 1000000,
+  "max_trial_boards": 1000000,
+  "max_promotions": 1000,
+  "plateau_limit": 0,
+  "evaluation_seconds": 7200,
+  "growth_boards": 128,
+  "growth_seconds": 1800,
+  "automatic_goal_check": false,
+  "selection_policy": "parent-improvement",
+  "allow_promotion": true,
+  "baseline_fault_policy": "baseline-forfeit-24",
+  "maintenance_budget": {
+    "max_requests": 4000,
+    "max_tokens": 200000000,
+    "max_seconds": 64800
+  },
+  "repair_attempts": 100,
+  "auto_continue_repairs": true,
+  "repair_continuation_mode": "research",
+  "research_task": "本轮由用户明确授权扩大资源，研究池600M token、10000请求，独立维护池200M token、4000请求；这是新授权实验，旧实验的费用、失败和成绩完整保留，不是把旧账重置为未使用。承接当前已验证冠军、五类故障修订后的固定基线、18份保留草稿和待评价候选，继续逼叫性Pass完整体系研究。现在最重要的工程问题是完整叫牌阶段覆盖过少，不是某个局部收益指标：第一项实现任务必须面向大范围缺失内容，先梳理并保存公开进程、双方已知信息、手牌分区、每个相关叫品的含义、同伴接续和干扰出口，随后成片实现多个关联阶段；不要把计划拆成只修改一两个叫品的小补丁。允许重划既有叫品、优先次序、状态和信息传递；只有冻结目标契约的外部责任、运行时信息边界及真实评分不可冒改。采用覆盖优先草拟：可以先批量补齐未完成、未测试的工作版本，不要求每增加一条规则就先跑测试或DDS，不因暂时回归失败退回全部新内容；保存stage_design中的已实现、仍缺失、尚未验证和下一步。先形成连贯的大草稿，再按关联阶段批量验证、自然复放和修复反例，闭合发送、公开承诺、接收和退出后再发布。优先补齐不同点力与牌型的应叫、开叫方再叫、配合识别、无配合寻局、无将止张与套长表达、竞争双方的继续或惩罚选择、试探成局、满贯探索，以及加倍、再加倍和再干扰后的责任；保留逼叫性Pass的总体研究方向，但不把任何旧局部结构当作不可动的基线。完整公开长度信息包含上下界、已知配合和套间相对长度；发送条件不能冒充已登记的公开保证。覆盖表与自然可达见证用于说明工程进展，不作为fitness，不靠新增规则数量或宽泛Pass假装覆盖。保留草稿可以用continue_from继续，完整已发布候选可用base_candidate继续，互补结构可合并；覆盖扩展即使短期成绩不足，也保留为可继续设计分支，不因几个IMP的小波动终止全局补全方向。批量验证之后使用大批定向自然牌例与程序自动扩样，缺少特定环境就补生成，不逐副调用模型；均匀新牌评测和挑战仍由宿主执行，不能把未测试草稿、注入前缀、历史成绩或条件试验冒充正式提升。研究负责人优先汇报真正新增的可达阶段、公开信息和接续覆盖，以及当前未完成和待验证部分，让用户能在控制台按叫牌进程审查。基线或接口工程故障立即转独立维护岗位，不占研究资源，也不吞掉原失败或修改对手、评分和旧实验。资源用于完整体系和可复查结果，不为增加调用量而反复查询、空耗或重跑相同资料。"
+}

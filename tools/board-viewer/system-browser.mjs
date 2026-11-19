@@ -12,6 +12,25 @@ export function parseCallText(text) {
   });
 }
 
+export function protocolReviewURL({ run, system, session, snapshot, initialRequest = {}, publicSystems = {}, side, opponent }) {
+  const history = parseCallText((initialRequest.history || []).join(" "));
+  const dealer = initialRequest.dealer || "N";
+  if (!seatOrder.includes(dealer)) throw new Error("请选择发牌人。");
+  const index = initialRequest.turn === undefined ? history.length : initialRequest.turn - 1;
+  side ||= ["N", "S"].includes(seatOrder[(seatOrder.indexOf(dealer) + index) % 4]) ? "NS" : "EW";
+  const query = new URLSearchParams({ dealer, vulnerability: initialRequest.vulnerability || "none", side });
+  if (run) query.set("evolution", run);
+  if (session) query.set("session", session);
+  else if (system) query.set("system", system);
+  if (snapshot) query.set("snapshot", snapshot);
+  if (history.length) query.set("history", history.join(" "));
+  if (initialRequest.call) query.set("call", initialRequest.call);
+  if (initialRequest.turn !== undefined) query.set("turn", initialRequest.turn);
+  const other = side === "NS" ? "EW" : "NS";
+  if (opponent || publicSystems[other]) query.set("opponent", opponent || publicSystems[other]);
+  return "/protocol-review?" + query;
+}
+
 export function positionRequest({ history, dealer = "N", vulnerability = "none", call = "", hand = "" }, decision = false) {
   const calls = parseCallText(history);
   if (!seatOrder.includes(dealer)) throw new Error("请选择发牌人。");
@@ -35,7 +54,7 @@ export function renderNavigationResult(result, escape) {
     ${keyButton(item.key, item.id)}</div>${item.action ? `<p>行动：${escape(item.action)}</p>` : ""}
     ${item.description ? `<p class="system-condition">${escape(item.description)}</p>` : ""}
     ${item.data !== undefined ? `<details><summary>定义与引用</summary><pre>${escape(JSON.stringify(item.data, null, 2))}</pre>
-    ${(item.dependencies || []).map(key => keyButton(key)).join(" · ")}</details>` : ""}
+    ${[...(item.dependencies || []), ...(item.transition_keys || [])].map(key => keyButton(key)).join(" · ")}</details>` : ""}
     ${item.definition_omitted ? `<p class="form-error">该节点较大，请按源路径读取具体字段：${escape(item.pointer)}</p>` : ""}</article>`;
   if (result.view === "catalog") {
     return `<p class="form-hint">${escape(result.states_total)}个阶段 · ${escape(result.counts.rule || 0)}条决策规则</p>

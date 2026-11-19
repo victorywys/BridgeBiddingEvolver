@@ -4,7 +4,7 @@
   "private": true,
   "description": "Local browser bundle, icons and fonts for the bridge board review tool.",
   "scripts": {
-    "build": "esbuild app.entry.mjs --bundle --format=esm --platform=browser --target=es2022 --outfile=app.mjs",
+    "build": "esbuild app.entry.mjs --bundle --format=esm --platform=browser --target=es2022 --outfile=app.mjs && esbuild protocol-review.entry.mjs --bundle --format=esm --platform=browser --target=es2022 --outfile=protocol-review.mjs",
     "test": "node --test *.test.mjs"
   },
   "dependencies": {

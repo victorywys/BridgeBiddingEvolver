@@ -39,12 +39,13 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def verify_bounds(steps: list[dict], board) -> int:
+def verify_bounds(steps: list[dict], board, *, previous: dict | None = None) -> int:
     def require(condition: bool, message: str) -> None:
         if not condition:
             raise SystemError(message, actor=step["seat"], system_hash=step.get("system_hash"))
 
-    previous = {}
+    if previous is None:
+        previous = {}
     checked = 0
     for step in steps:
         before, after = step.get("public_context", {}), step.get("public_context_after", {})

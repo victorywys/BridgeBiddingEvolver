@@ -49,35 +49,52 @@ class BoardRecord:
     board: Board
 
 
-def generate_dataset(directory: Path, *, count: int, seed: int, split: str) -> Path:
+def generate_dataset(directory: Path, *, count: int, seed: int, split: str, source=None, sampling=None) -> Path:
     if integer(count) < 1 or split not in ("train", "validation", "test"):
         raise ValueError("A dataset needs a positive count and train/validation/test split.")
     integer(seed)
+    if (source is None) != (sampling is None):
+        raise ValueError("A conditional dataset requires both a frozen sampling description and its board source.")
     directory.mkdir(parents=True, exist_ok=False)
     rng = random.Random(seed)
     families = set()
     distribution = Counter()
     path = directory / "boards.jsonl"
+    iterator = iter(source) if source is not None else None
     with path.open("x", encoding="utf8") as output:
         for index in range(count):
-            while True:
-                deck = list(full_deck())
-                rng.shuffle(deck)
-                deal = Deal(*(Hand(tuple(deck[start:start + 13])) for start in (0, 13, 26, 39)))
-                family = family_hash(deal)
-                if family not in families:
-                    break
+            if iterator is None:
+                while True:
+                    deck = list(full_deck())
+                    rng.shuffle(deck)
+                    deal = Deal(*(Hand(tuple(deck[start:start + 13])) for start in (0, 13, 26, 39)))
+                    family = family_hash(deal)
+                    if family not in families:
+                        break
+                dealer = list(Seat)[index % 4]
+                vulnerability = list(Vulnerability)[((index // 4) + index) % 4]
+                board = Board(deal, dealer, vulnerability)
+            else:
+                try:
+                    raw = next(iterator)
+                except StopIteration as error:
+                    raise ValueError(f"Conditional sampling produced only {index}/{count} boards.") from error
+                board = parse_board(raw["board"])
+                family = family_hash(board.deal)
+                if raw["index"] != index or raw["family_id"] != family or family in families:
+                    raise ValueError("Conditional sampling returned a wrong index or duplicated/mismatched family.")
             families.add(family)
-            dealer = list(Seat)[index % 4]
-            vulnerability = list(Vulnerability)[((index // 4) + index) % 4]
-            board = Board(deal, dealer, vulnerability)
-            distribution[f"{dealer.value}/{vulnerability.value}"] += 1
+            distribution[f"{board.dealer.value}/{board.vulnerability.value}"] += 1
             output.write(json.dumps({"index": index, "family_id": family, "board": board_data(board)}) + "\n")
+        sentinel = object()
+        if iterator is not None and next(iterator, sentinel) is not sentinel:
+            raise ValueError("Conditional sampling returned more than the frozen board count.")
     manifest = {
         "schema_version": 1, "count": count, "seed": seed, "split": split,
-        "sampling": "uniform Fisher-Yates full 52-card deals; no hand/HCP selection",
-        "generator": "python-random-shuffle-v1", "python": platform.python_version(),
-        "schedule": "balanced 16-board dealer/vulnerability cycle",
+        "sampling": sampling if sampling is not None else "uniform Fisher-Yates full 52-card deals; no hand/HCP selection",
+        "generator": "frozen-conditional-rejection-v1" if sampling is not None else "python-random-shuffle-v1",
+        "python": platform.python_version(),
+        "schedule": "frozen conditional dealer/vulnerability schedule" if sampling is not None else "balanced 16-board dealer/vulnerability cycle",
         "families": "seat-cyclic-rotation grouped; distinct base families",
         "distribution": dict(sorted(distribution.items())),
         "boards": path.name, "boards_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),

@@ -16,12 +16,13 @@ from bridge_evolve.evaluation.data import canonical_hash
 from bridge_evolve.evolution.config import ROOT, DEFAULT_MODEL, blank_system, normalize_config
 from bridge_evolve.evolution.controller import Controller, initialize, register_system, run, status
 from bridge_evolve.evolution.execution import Evaluator, EvolutionStopped
-from bridge_evolve.evolution.models import ModelClient
-from bridge_evolve.evolution.inspection import overview, research_detail, frozen_system_export, timeline
+from bridge_evolve.evolution.models import ModelClient, request_body
+from bridge_evolve.evolution.inspection import overview, research_detail, research_evidence_export, frozen_system_export, timeline
 from bridge_evolve.evolution.proposals import evidence_packet
 from bridge_evolve.evolution.research import RESEARCH_PROMPT, ResearchSession
-from bridge_evolve.evolution.research_tools import ResearchTools, edit_document
+from bridge_evolve.evolution.research_tools import ResearchTools, TOOL_DEFINITIONS, edit_document
 from bridge_evolve.systems import validate_system
+from bridge_evolve.systems.inputs import parse_hand
 
 
 BOARD = json.loads((ROOT / "examples/general-board.json").read_text())
@@ -145,6 +146,88 @@ class ResearchTests(unittest.TestCase):
         self.assertFalse(self.tools.execute("bad-navigation", "navigate_system", {
             "request": {"view": "catalog"}, "snapshot": "../../host"})["ok"])
 
+    def test_navigated_v2_state_can_be_used_as_an_edit_without_changing_protocol_behavior(self):
+        raw = self.opening_system()
+        name = raw["protocol"]["initial"]
+        raw["protocol"]["states"][name]["transitions"] = [
+            {"id": "stay", "when": False, "to": name, "set": {}}]
+        self.tools.execute("state-source", "edit_system", {"edits": [{"op": "replace", "path": "", "value": raw}]})
+        before = self.tools.system().content_hash
+        read = self.tools.execute("read-state-source", "navigate_system", {
+            "request": {"view": "read", "keys": ["state:" + name, "rule:original.open"], "dependencies": False}})
+        self.assertTrue(read["ok"], read)
+        state = read["definitions"]["items"][0]
+        self.assertNotIn("on", state["data"])
+        self.assertIsInstance(state["data"]["transitions"][0], dict)
+        edited = self.tools.execute("replace-state-source", "edit_system", {
+            "edits": [{"op": "replace", "path": state["pointer"], "value": state["data"]}]})
+        self.assertTrue(edited["ok"], edited)
+        compiled = self.tools.execute("validate-state-source", "validate_system", {})
+        self.assertTrue(compiled["ok"], compiled)
+        self.assertEqual(compiled["system_hash"], before)
+        case_id = self.case()
+        result = self.tools.play(case_id, decision=True)
+        self.assertEqual(result["call"], "1C")
+
+    def test_validation_feedback_includes_the_source_field_pointer(self):
+        raw = self.opening_system()
+        raw["rules"][0]["id"] = ""
+        self.tools.execute("empty-rule-id", "edit_system", {"edits": [{"op": "replace", "path": "", "value": raw}]})
+        result = self.tools.execute("locate-empty-rule-id", "validate_system", {})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["pointer"], "/rules/0/id")
+        self.assertIn("/rules/0/id", result["error"])
+
+    def test_nested_tool_schema_rejects_bad_inputs_before_play_or_lab_reservations(self):
+        cases = [
+            ("inspect_case", {"case_id": "unused", "turn": 0}, "/turn"),
+            ("inspect_case", {"case_id": "unused", "turn": True}, "/turn"),
+            ("inspect_case", {"case_id": "unused", "table": 3}, "/table"),
+            ("inspect_case", {"case_id": "unused", "side": "N"}, "/side"),
+            ("generate_cases", {"sampling": {"constraints": {"S": {"suit_lengths": {"D": [6, 7]}}}}},
+             "/sampling/constraints/S/suit_lengths"),
+            ("generate_cases", {"sampling": {"constraints": {"S": {"D": [6]}}}}, "/sampling/constraints/S/D"),
+            ("generate_cases", {"sampling": {"constraints": {"S": {"D": [6, True]}}}}, "/sampling/constraints/S/D/1"),
+            ("generate_cases", {"sampling": {"count": 0}}, "/sampling/count"),
+            ("navigate_system", {"request": {"view": "read", "keys": ["state:idle"] * 21}}, "/request/keys"),
+        ]
+        with patch.object(self.tools, "play", side_effect=AssertionError("Must validate before running a case.")):
+            for index, (name, arguments, pointer) in enumerate(cases):
+                with self.subTest(name=name, arguments=arguments):
+                    result = self.tools.execute(f"bad-typed-input-{index}", name, arguments)
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(result["pointer"], pointer)
+                    self.assertEqual(self.tools.data["lab_boards"], 0)
+                    self.assertEqual(self.controller.state["evaluated_pairs"], 0)
+        definitions = {item["name"]: item["parameters"] for item in TOOL_DEFINITIONS}
+        self.assertEqual(definitions["inspect_case"]["properties"]["turn"]["minimum"], 1)
+        self.assertFalse(definitions["generate_cases"]["$defs"]["hand"]["additionalProperties"])
+
+    def test_dds_inspection_selects_the_requested_actual_step_and_rejects_ignored_fields(self):
+        case_id = self.case()
+        self.controller.evaluator = Mock()
+        record = {"board": BOARD, "audit_result": {"status": "fixture", "errors": []}, "tables": [
+            {"id": "table1", "auction": [{"seat": "N", "call": "1C"}]},
+            {"id": "table2", "auction": [{"seat": "N", "call": "1D"}]},
+        ]}
+        module = Mock()
+        module.BoardAuditEngine.return_value.batch_board.return_value = (record, None, [])
+        with patch("bridge_evolve.evolution.research_tools.audit_module", return_value=module):
+            result = self.tools.execute("inspect-second-dds-table", "inspect_case", {
+                "case_id": case_id, "dds": True, "side": "EW", "turn": 1})
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["selection"], {"table": 2, "side": "EW", "turn": 1})
+        self.assertEqual(result["step"]["call"], "1D")
+        self.assertEqual(self.controller.evaluator.reserve_pair.call_count, 1)
+        for arguments, pointer in (
+            ({"case_id": case_id, "table": 2}, "/table"),
+            ({"case_id": case_id, "dds": True, "table": 1, "side": "EW"}, "/side"),
+        ):
+            result = self.tools.execute("reject-ignored-field-" + pointer, "inspect_case", arguments)
+            self.assertFalse(result["ok"], result)
+            self.assertEqual(result["pointer"], pointer)
+        self.assertEqual(self.controller.evaluator.reserve_pair.call_count, 1)
+
     def test_research_intro_is_scoped_and_evidence_has_direct_pointers(self):
         session = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
         intro = json.loads(session.data["messages"][1]["content"])
@@ -156,6 +239,130 @@ class ResearchTests(unittest.TestCase):
         result = self.tools.execute("direct-evidence", "read_evidence", {
             "view": "packet", "pointer": "/selected_groups/0/examples/0"})
         self.assertEqual(result["value"], {"one": 1})
+
+    def test_large_assertion_failures_preserve_complete_values_without_expanding_feedback(self):
+        case_id = self.case()
+        actual = {"call": "P", "public_meaning": "x" * 17000000, "private_trace": {"rule_id": "fallback"}}
+        self.tools.data["tests"] = [
+            {"name": name, "case_id": case_id, "mode": "decision", "assertions": [assertion]}
+            for name, assertion in (
+                ("call", {"path": "/call", "op": "eq", "value": "P"}),
+                ("private", {"path": "/private_trace/rule_id", "op": "eq", "value": "fallback"}),
+                ("wrong-root-rule", {"path": "", "op": "contains", "value": "rule_id"}),
+                ("wrong-root-context", {"path": "", "op": "contains", "value": "context"}),
+            )
+        ]
+        with patch.object(self.tools, "play", return_value=actual):
+            result = self.tools.execute("large-tests", "run_tests", {})
+        self.assertEqual((result["tests"], result["passed"], result["failed"]), (4, 2, 2))
+        self.assertLess(len(json.dumps(result).encode()), 6000)
+        reference = result["failures"][0]["details_ref"]
+        details = self.tools.execute("read-large-failure", "read_result", {
+            "result_id": reference["result_id"], "pointer": "/actual/public_meaning",
+            "text_offset": 16999990, "text_limit": 20})
+        self.assertEqual(details["total_chars"], 17000000)
+        self.assertEqual(details["value"], "x" * 10)
+        self.assertEqual(self.tools.data["last_tests"]["failed"], 2)
+
+    def test_legacy_thirty_three_mb_feedback_is_bounded_on_inheritance_and_handoff(self):
+        first = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+        first.tools.data["last_tests"] = {"tests": 4, "passed": 2, "failed": 2, "change_witnesses": 0,
+            "system_hash": self.parent, "failures": [{"error": "x" * 16500000}, {"error": "y" * 16500000}]}
+        first.tools.save()
+        first.save()
+        original = first.tools.path.read_bytes()
+        second = ResearchSession(self.controller, 2, "Z", self.parent, self.packet)
+        self.assertEqual(second.tools.data["last_tests"]["failed"], 2)
+        reference = second.tools.data["last_tests"]["details_ref"]
+        self.assertLess(len(request_body(self.controller.config, second.data["messages"], TOOL_DEFINITIONS)),
+                        self.controller.config["max_context_bytes"])
+        second.compact("A long handoff " * 10000)
+        self.assertLess(len(request_body(self.controller.config, second.data["messages"], TOOL_DEFINITIONS)),
+                        self.controller.config["max_context_bytes"])
+        self.assertLess(len(json.dumps(overview(self.directory, details=True)).encode()), 150000)
+        self.assertLess(len(json.dumps(research_detail(self.directory, "g001-Z")).encode()), 50000)
+        full = second.tools.execute("read-inherited", "read_result", {
+            "result_id": reference["result_id"], "pointer": "/failures/1/error", "text_limit": 3})
+        self.assertEqual(full["value"], "yyy")
+        self.assertEqual(first.tools.path.read_bytes(), original)
+        self.client.request.assert_not_called()
+
+    def test_consultation_uses_bounded_feedback_and_full_result_tampering_is_rejected(self):
+        self.tools.data["last_tests"] = {"tests": 1, "passed": 0, "failed": 1,
+                                        "failures": [{"error": "e" * 2000000}]}
+        self.client.request.return_value = response(text="需要修复。")
+        result = self.tools.execute("bounded-consult", "consult", {"question": "检查实际失败", "pointers": ["/fallback"]})
+        self.assertTrue(result["ok"], result)
+        messages, definitions = self.client.request.call_args.args
+        self.assertLess(len(request_body(self.controller.config, messages, definitions)), 32000)
+        identity, metadata = next(iter(self.tools.data["full_results"].items()))
+        path = self.controller.directory / metadata["path"]
+        path.write_text("{}")
+        failed = self.tools.execute("tampered-full-result", "read_result", {"result_id": identity})
+        self.assertFalse(failed["ok"])
+        self.assertIn("hash mismatch", failed["error"])
+
+    def test_full_request_including_tools_fits_the_minimum_context_setting(self):
+        self.controller.config["max_context_bytes"] = 16000
+        session = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+        session.compact("上下文交接" * 10000)
+        self.assertLessEqual(len(request_body(self.controller.config, session.data["messages"], TOOL_DEFINITIONS)), 16000)
+        self.client.request.assert_not_called()
+
+    def test_a_long_legacy_scalar_has_a_readable_result_reference_not_an_unusable_narrow_pointer(self):
+        self.tools.data["notes"] = [{"kind": "review", "text": "x" * 100000}]
+        result = self.tools.execute("long-note", "read_workspace", {"pointer": "/notes/0/text"})
+        self.assertTrue(result["needs_narrower_pointer"])
+        restored = self.tools.execute("long-note-slice", "read_result", {
+            "result_id": result["details_ref"]["result_id"], "text_offset": 99998, "text_limit": 8})
+        self.assertEqual(restored["value"], "xx")
+
+    def test_bounded_tool_inspection_escapes_opaque_ids_for_exact_evidence_download(self):
+        session = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+        session.tools.execute("call/id~", "research_note", {"text": "注" * 16000})
+        view = research_detail(self.directory, "g001-Z", tool_call="call/id~")
+        self.assertTrue(view["details_omitted"])
+        self.assertEqual(view["details_ref"]["pointer"], "/operations/call~1id~0")
+        full = json.loads(research_evidence_export(self.directory, "g001-Z", pointer=view["details_ref"]["pointer"]))
+        self.assertEqual(full["arguments"]["text"], "注" * 16000)
+
+    def test_large_object_keys_cannot_defeat_the_bounded_result_envelope(self):
+        value = {"ok": False, "failed": 2, "k" * 100000: {"unexpected": True}}
+        view = self.tools.feedback(value, limit=1000)
+        self.assertLessEqual(len(json.dumps(view).encode()), 1000)
+        self.assertFalse(view["ok"])
+        self.assertEqual(view["failed"], 2)
+        restored = self.tools.execute("large-key-evidence", "read_result", {
+            "result_id": view["details_ref"]["result_id"], "pointer": "/failed"})
+        self.assertEqual(restored["value"], 2)
+
+    def test_oversized_provider_call_metadata_is_rejected_before_it_expands_the_tool_ledger(self):
+        with patch("bridge_evolve.evolution.research.ModelClient") as factory:
+            factory.return_value.request.return_value = response(("x" * 513, "research_note", {"text": "test"}))
+            session = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+            with self.assertRaisesRegex(ValueError, "oversized function-call metadata"):
+                session.run()
+        self.assertFalse(session.tools.data["operations"])
+        self.assertTrue(session.data["responses"])
+
+    def test_new_experiment_can_read_full_evidence_referenced_by_inherited_summaries(self):
+        first = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+        first.tools.data["last_tests"] = first.tools.feedback({
+            "tests": 1, "passed": 0, "failed": 1, "change_witnesses": 0,
+            "system_hash": self.parent, "failures": [{"error": "e" * 100000}]}, limit=6000)
+        first.tools.save()
+        first.save()
+        original = first.tools.path.read_bytes()
+        directory = initialize({**self.config, "research_seed_run": str(self.directory)},
+                               self.project / "inherited-feedback", self.project)
+        controller = Controller(directory)
+        second = ResearchSession(controller, 1, "Z", self.parent, self.packet)
+        reference = second.tools.data["last_tests"]["details_ref"]
+        details = second.tools.execute("read-migrated-feedback", "read_result", {
+            "result_id": reference["result_id"], "pointer": "/failures/0/error", "text_offset": 99995, "text_limit": 10})
+        self.assertEqual(details["value"], "e" * 5)
+        self.assertEqual(first.tools.path.read_bytes(), original)
+        self.assertEqual(controller.state["agent_requests"], 0)
 
     def test_intermediate_invalid_rules_are_acknowledged_but_non_general_releases_are_rejected(self):
         edited = self.tools.execute("temporary-null", "edit_system", {"edits": [{"op": "replace", "path": "/rules", "value": None}]})
@@ -249,6 +456,34 @@ class ResearchTests(unittest.TestCase):
         self.tools.execute("bad-policy", "edit_system", {"edits": [{"op": "replace", "path": "", "value": hidden}]})
         self.assertFalse(self.tools.execute("validate-hidden", "validate_system", {})["ok"])
         self.assertEqual(self.tools.data["releases"], [])
+
+    def test_harmless_default_arguments_do_not_prevent_reading_real_round_feedback(self):
+        case_id = self.case()
+        inspected = self.tools.execute("default-single-table", "inspect_case", {
+            "case_id": case_id, "side": "NS", "table": 1, "turn": 1, "dds": False})
+        self.assertTrue(inspected["ok"], inspected)
+        self.assertEqual(inspected["step"]["call"], "P")
+        evaluator = Evaluator(self.directory, self.controller.config, self.controller.state,
+                              self.controller.checkpoint, self.controller.stop)
+        self.addCleanup(evaluator.close)
+        result = evaluator.evaluate("approved-feedback", [self.parent], 1)
+        listing = self.tools.execute("feedback-with-empty-pointer", "read_evidence", {
+            "view": "rounds", "pointer": "", "offset": 0, "limit": 20})
+        self.assertTrue(listing["ok"], listing)
+        self.assertEqual(listing["value"][0]["objective"], result["objective"])
+        self.assertEqual(listing["value"][0]["candidate_statuses"][self.parent], "checked")
+        records = self.tools.execute("records-with-empty-defaults", "read_evidence", {
+            "view": "records", "pointer": "", "candidate": "", "round_id": result["id"], "limit": 1})
+        self.assertTrue(records["ok"], records)
+        self.assertEqual(records["candidate"], self.parent)
+        self.assertEqual(len(records["records"]), 1)
+        rejected = self.tools.execute("non-packet-path-remains-invalid", "read_evidence", {
+            "view": "rounds", "pointer": "/unseen"})
+        self.assertFalse(rejected["ok"])
+        invalid_section = self.tools.execute("metadata-is-not-a-pointer", "navigate_system", {
+            "request": {"view": "read", "keys": ["fallback"], "sections": ["source_node"]}})
+        self.assertFalse(invalid_section["ok"])
+        self.assertEqual(invalid_section["pointer"], "/request/sections/0")
 
     def test_advisory_reviewer_uses_the_same_pinned_client_and_has_no_tools(self):
         self.client.request.return_value = response(text="检查问叫和回答的边界，当前没有实际测试证明。")
@@ -383,6 +618,79 @@ class ResearchTests(unittest.TestCase):
         (new_directory / seed["path"]).write_text("{}")
         with self.assertRaisesRegex(ValueError, "input identity"):
             Controller(new_directory)
+
+    def test_retaining_a_development_origin_rebases_saved_witnesses_and_preserves_old_evidence(self):
+        old_parent = self.controller.config["baselines"][0]["hash"]
+        self.controller.state["champions"] = {"A": old_parent}
+        session = ResearchSession(self.controller, 1, "A", old_parent,
+                                  evidence_packet(self.controller.system(old_parent), [], ["*"]))
+        case = session.tools.execute("source-case", "add_cases", {"cases": [{"name": "saved", "board": BOARD}]})
+        case_id = case["cases"][0]["case_id"]
+        raw = self.opening_system("1S")
+        session.tools.execute("source-edit", "edit_system", {"edits": [{"op": "replace", "path": "", "value": raw}]})
+        session.tools.execute("source-tests", "write_tests", {"tests": self.authored_tests(case_id, "1S")})
+        old_result = session.tools.execute("source-test-run", "run_tests", {})
+        self.assertEqual(old_result["change_witnesses"], 1)
+        self.controller.checkpoint()
+        original = (self.directory / "state.json").read_bytes()
+        origin_path = self.project / "development-origin.json"
+        origin_path.write_text(json.dumps(raw))
+        new_directory = initialize({
+            **self.config, "origins": ["existing"], "baselines": [str(origin_path), self.config["baselines"][1]],
+            "research_seed_run": str(self.directory), "research_seed_parent": "origin",
+            "benchmark_revision_reason": "Fixture uses the saved protocol as an explicit development origin.",
+        }, self.project / "rebased-development", self.project)
+        controller = Controller(new_directory)
+        parent = controller.state["champions"]["A"]
+        self.assertEqual(parent, validate_system(raw).content_hash)
+        continued = ResearchSession(controller, 1, "A", parent, evidence_packet(controller.system(parent), [], ["*"]))
+        self.assertEqual(continued.tools.system().content_hash, parent)
+        self.assertNotIn("changed_from_parent", continued.tools.data["tests"][0])
+        self.assertNotIn("last_tests", continued.tools.data)
+        history = continued.tools.data["prior_parent_evidence"]
+        self.assertEqual(history["source_parent"], old_parent)
+        self.assertEqual(history["last_tests"]["change_witnesses"], 1)
+        actual = continued.tools.execute("rebased-test-run", "run_tests", {})
+        self.assertEqual((actual["passed"], actual["failed"], actual["change_witnesses"]), (1, 0, 0))
+        self.assertTrue(continued.tools.summary()["tests_current"])
+        self.assertEqual((self.directory / "state.json").read_bytes(), original)
+        self.assertEqual(controller.state["agent_requests"], 0)
+
+    def test_eighty_turn_unit_continues_through_soft_checkpoint_without_restarting_context(self):
+        self.controller.config.update(max_research_turns=80, max_tool_calls=100, max_agent_requests=100)
+        replies = [response((f"note-{index}", "research_note", {"text": f"Fixture operation {index}"}))
+                   for index in range(24)]
+        replies.append(response(("finish-unit", "finish_research", {"summary": "Fixture unit completed."})))
+        with patch("bridge_evolve.evolution.research.ModelClient") as factory:
+            factory.return_value.request.side_effect = replies
+            session = ResearchSession(self.controller, 1, "Z", self.parent, self.packet)
+            result = session.run()
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(session.data["turns"], 25)
+        self.assertEqual(session.data["context_compactions"], 0)
+        self.assertEqual(session.data["unit_checkpoints"], [24])
+        checkpoints = [message for message in session.data["messages"]
+                       if message.get("role") == "user" and "research_unit_checkpoint" in message["content"]]
+        self.assertEqual(len(checkpoints), 1)
+        session.data["turns"] = 24
+        session.progress_checkpoint()
+        self.assertEqual(session.data["unit_checkpoints"], [24])
+        self.assertEqual(sum(event["type"] == "unit_checkpoint" for event in session.data["events"]), 1)
+
+    def test_current_test_status_tracks_raw_documents_with_normalized_default_fields(self):
+        raw = self.opening_system()
+        name = raw["protocol"]["initial"]
+        raw["protocol"]["states"][name]["transitions"] = [{"id": "unused", "when": False, "to": name, "set": {}}]
+        self.tools.execute("raw-with-defaults", "edit_system", {"edits": [{"op": "replace", "path": "", "value": raw}]})
+        self.assertNotEqual(canonical_hash(raw), self.tools.system().content_hash)
+        case_id = self.case()
+        self.tools.execute("default-field-tests", "write_tests", {"tests": self.authored_tests(case_id)})
+        result = self.tools.execute("default-field-test-run", "run_tests", {})
+        self.assertEqual(result["document_hash"], canonical_hash(raw))
+        self.assertTrue(self.tools.summary()["tests_current"])
+        self.tools.execute("changed-document", "edit_system", {"edits": [
+            {"op": "replace", "path": "/rules/0/priority", "value": 901}]})
+        self.assertFalse(self.tools.summary()["tests_current"])
 
     def test_published_champion_warm_start_uses_the_winner_and_rebases_regression_witnesses(self):
         case_id = self.case()
@@ -551,7 +859,8 @@ class ResearchTests(unittest.TestCase):
         broken["fallback"] = {"kind": "error", "message": "test-only fixed opponent error"}
         path = self.project / "broken-anchor.json"
         path.write_text(json.dumps(broken))
-        directory = initialize({**self.config, "baselines": [self.config["baselines"][0], str(path)]},
+        directory = initialize({**self.config, "baselines": [self.config["baselines"][0], str(path)],
+                                "baseline_fault_policy": "strict"},
                                self.project / "blocked-research", self.project)
         with patch.object(Controller, "proposals", return_value={"source": "research", "proposals": [], "analysis": []}) as researcher:
             result = run(directory)
@@ -574,6 +883,7 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(controller.state["goal_checks"], 0)
         self.assertNotIn("goal-10000", controller.state["rounds"])
         continued = initialize({**self.config, "baselines": [self.config["baselines"][0], str(path)],
+                               "baseline_fault_policy": "strict",
                                "champion_seed_run": str(directory)}, self.project / "blocked-continuation", self.project)
         carried = status(continued)
         self.assertTrue(carried["comparison_issues"])
@@ -586,12 +896,17 @@ class ResearchTests(unittest.TestCase):
         releases = []
         for number in range(2):
             raw = blank_system().to_data()
-            raw["rules"] = [{"id": f"test.unreachable.{number}", "priority": 1, "when": False,
+            raw["rules"] = [{"id": f"test.rare.{number}", "priority": 1, "when": {"op": "and", "args": [
+                {"op": "has", "card": card.rank + card.suit} for card in parse_hand(BOARD["hands"]["N"]).cards]},
                              "action": {"kind": "call", "call": "1C"}}]
             system = validate_system(raw)
             identity = register_system(self.directory, self.controller.state, system)
             path = self.directory / "research" / f"test-release-{number}.json"
-            self.controller.artifact(path, {"parent": self.parent, "hash": identity, "tests": {"tests": 1, "passed": 1, "failed": 0}})
+            self.controller.artifact(path, {"parent": self.parent, "hash": identity,
+                "tests": {"tests": 1, "passed": 1, "failed": 0, "change_witnesses": 1},
+                "cases": {"rare": {"name": "rare", "board": BOARD}},
+                "test_definitions": [{"name": "rare-natural-change", "case_id": "rare", "mode": "decision",
+                    "changed_from_parent": True, "assertions": [{"path": "/call", "op": "eq", "value": "1C"}]}]})
             releases.append({"parent_hash": self.parent, "snapshot_hash": identity, "release": str(path.relative_to(self.directory)),
                              "hypothesis": "test-only tied no-action-change candidate"})
         self.controller.checkpoint()
@@ -601,7 +916,9 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed", result.get("error"))
         entries = list(result["generations"]["1"]["candidates"].values())
         self.assertEqual([entry["status"] for entry in entries], ["insufficient_coverage", "insufficient_coverage"])
-        self.assertEqual(len(result["rounds"]["g001-full"]["systems"]), 3)
+        self.assertEqual(len(result["evaluation_queue"]), 2)
+        for job in result["evaluation_queue"].values():
+            self.assertEqual(len(result["rounds"][job["rounds"]["full"]]["systems"]), 2)
         self.assertTrue(all(entry["full_delta"] == 0 for entry in entries))
 
 
@@ -752,6 +1069,8 @@ class ResearchHTTPTests(unittest.TestCase):
                     response(("note", "research_note", {"text": "已保存实际研究记录；此处为HTTP测试夹具，不是模型成绩。"})),
                     response(("done", "finish_research", {"summary": "HTTP接口验证，不宣称改进。"}))]
                 ResearchSession(controller, 1, "Z", parent, packet).run()
+            tools = ResearchTools(controller, "g001-Z", parent, packet, controller.system(parent).to_data(), None)
+            full = tools.full_result({"message": "x" * 1000000})
             state = viewer.ViewerState(project)
             self.addCleanup(state.executor.shutdown)
             server = viewer.ViewerServer(("127.0.0.1", 0), state)
@@ -789,6 +1108,14 @@ class ResearchHTTPTests(unittest.TestCase):
                 code, body = request(prefix + "/research/g001-Z?tool_call=note")
                 self.assertEqual(code, 200)
                 self.assertIn("HTTP", json.loads(body)["arguments"]["text"])
+                code, body = request(prefix + "/research/g001-Z/evidence?pointer=%2Fnotes%2F0")
+                self.assertEqual(code, 200)
+                self.assertIn("HTTP", json.loads(body)["text"])
+                code, body = request(prefix + "/research/g001-Z/results/" + full["result_id"])
+                self.assertEqual(code, 200)
+                self.assertEqual(len(json.loads(body)["message"]), 1000000)
+                code, _ = request(prefix + "/research/g001-Z/results/" + "f" * 64)
+                self.assertEqual(code, 422)
                 code, body = request(prefix + f"/systems/{parent}.json")
                 self.assertEqual(code, 200)
                 self.assertEqual(json.loads(body)["rules"], [])
@@ -807,6 +1134,8 @@ class ResearchHTTPTests(unittest.TestCase):
                 code, _ = request(prefix + "/research/g001-Z")
                 self.assertEqual(code, 422)
                 code, _ = request(prefix + "/timeline")
+                self.assertEqual(code, 422)
+                code, _ = request(prefix + "/research/g001-Z/results/" + full["result_id"])
                 self.assertEqual(code, 422)
             finally:
                 server.shutdown()

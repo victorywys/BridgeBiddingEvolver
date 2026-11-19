@@ -1,0 +1,10 @@
+{
+  "experiment_id": "ccba-v5.5.4-vs-pidgin-v3.1-smoke",
+  "dataset": "../.runtime/external-baselines-smoke/data/manifest.json",
+  "system_a": "../systems/classics-v5.5.4-compact/ccba.json",
+  "system_b": "../../../bridge-bidding-baseline/policies/pidgin-v3.1.json",
+  "dds_cache": "../.runtime/dds/tables.sqlite",
+  "output": "../results/ccba-vs-pidgin-smoke-20261105",
+  "bootstrap_seed": 2026110501,
+  "bootstrap_resamples": 2000
+}

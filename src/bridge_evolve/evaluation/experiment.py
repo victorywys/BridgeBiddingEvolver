@@ -10,6 +10,7 @@ import sqlite3
 import time
 import sys
 from collections import Counter
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from bridge_evolve.evaluation.data import board_data, canonical_hash, deal_hash,
 from bridge_evolve.evaluation.statistics import paired_summary
 from bridge_evolve.evaluation.record_log import RecordWriter, iter_records
 from bridge_evolve.oracle import DDTable, DDSAdapter
-from bridge_evolve.systems import load_system, render_system
+from bridge_evolve.systems.external import ExternalPolicy, open_player, render_player
 from bridge_evolve.systems.inputs import Board, run_auction
 from bridge_evolve.systems.language import integer, load_json, object_fields
 
@@ -28,8 +29,8 @@ def timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def source_snapshot() -> dict[str, str]:
-    root = Path(__file__).resolve().parents[1]
+def source_snapshot(root: Path | None = None) -> dict[str, str]:
+    root = root or Path(__file__).resolve().parents[1]
     return {
         path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(root.rglob("*.py"))
@@ -68,6 +69,11 @@ def _save(path: Path, value: object) -> None:
 
 
 def evaluate(config_path: Path) -> Path:
+    with ExitStack() as stack:
+        return _evaluate(config_path, stack)
+
+
+def _evaluate(config_path: Path, stack: ExitStack) -> Path:
     config = object_fields(load_json(config_path), {
         "experiment_id", "dataset", "system_a", "system_b", "dds_cache",
         "output", "bootstrap_seed", "bootstrap_resamples",
@@ -84,7 +90,7 @@ def evaluate(config_path: Path) -> Path:
     manifest, records = load_dataset(paths["dataset"])
     if manifest["split"] == "test" and (paths["dataset"].parent / "consumed.json").exists():
         raise ValueError("This test dataset has been consumed for debugging/selection; use a fresh held-out dataset.")
-    a, b = load_system(paths["system_a"]), load_system(paths["system_b"])
+    a, b = (stack.enter_context(open_player(paths[key])) for key in ("system_a", "system_b"))
     if a.scope != "general" or b.scope != "general":
         raise ValueError("A full competitive comparison requires two general systems.")
     migration = None
@@ -113,7 +119,7 @@ def evaluate(config_path: Path) -> Path:
     systems.mkdir()
     for system in (a, b):
         _save(systems / f"{system.content_hash}.json", system.to_data())
-        (systems / f"{system.content_hash}.md").write_text(render_system(system), encoding="utf8")
+        (systems / f"{system.content_hash}.md").write_text(render_player(system), encoding="utf8")
     shutil.copyfile(paths["dataset"].parent / manifest["boards"], output / "dataset-boards.jsonl")
     if hashlib.sha256((output / "dataset-boards.jsonl").read_bytes()).hexdigest() != manifest["boards_sha256"]:
         raise ValueError("Dataset changed while copying the frozen run inputs.")
@@ -130,6 +136,7 @@ def evaluate(config_path: Path) -> Path:
         "source_hash": canonical_hash(source), "source_files": source,
         "config": config, "config_hash": canonical_hash(config), "oracle": oracle,
         "errors": [], "sample_unit": "unique base deal family; two tables combined",
+        "external_baselines": [player.content_hash for player in (a, b) if isinstance(player, ExternalPolicy)],
     }
     if migration is not None:
         _save(output / "migration.json", migration)
@@ -184,6 +191,9 @@ def evaluate(config_path: Path) -> Path:
                     print(json.dumps({"completed_boards": run["completed_boards"], "seconds": round(time.monotonic() - start, 2)}), file=sys.stderr, flush=True)
             if source_snapshot() != source:
                 raise RuntimeError("Source changed during the frozen comparison; results cannot be finalized.")
+            for player in (a, b):
+                if isinstance(player, ExternalPolicy):
+                    player.check_identity()
             summary = paired_summary(values, seed=seed, resamples=resamples)
             summary.update({
                 "system_a": run["system_a"], "system_b": run["system_b"],
@@ -251,7 +261,7 @@ def _report(path: Path, summary: dict, run: dict) -> None:
         "区间跨0，本次样本不足以确认哪一版本更强。"
     )
     lines = [
-        "# CCBA / Precision 工程移植版本：真实DDS同牌比较", "",
+        "# 叫牌策略：真实DDS同牌比较", "",
         f"- 实验：{run['experiment_id']}；状态：completed。",
         f"- A：{summary['system_a']['name']}；哈希 `{summary['system_a']['hash']}`。",
         f"- B：{summary['system_b']['name']}；哈希 `{summary['system_b']['hash']}`。",
@@ -267,20 +277,27 @@ def _report(path: Path, summary: dict, run: dict) -> None:
         f"| 无效 / 删除或替换牌例 | {summary['invalid_boards']} / {summary['deleted_or_replaced_boards']} |",
         "", conclusion,
         "", "## 解释边界", "",
+        *([
+            "- 本次包含冻结的外部神经叫牌基线；不是可执行规则IR，不声称具有精确叫品解释或人类可执行性。",
+            "- 外部模型只接收本人手牌和公开叫牌状态；无搜索、无其他暗手或DDS输入。双方搭档各自使用同一模型。",
+            "- 对黑箱叫品不猜自然/人工标签或套长保证；规则方只能使用实际叫品和黑箱明确未提供保证这一事实。",
+        ] if run.get("external_baselines") else []),
+        *([
         "- 这不是两份手册全部约定的逐条完整复现。工程移植保留主要开叫与协议，但部分精细后续按明示自然策略补全；详见同目录migration.json。结果不能直接冠名为原版体系的实力差距。",
         "- 比较对象是从用户文档迁移并补充了确定性判断的工程版本，不是人类搭档的唯一标准CCBA/精确实现。",
         "- 正文优先；模糊评估与未展开的自然续叫使用明示工程口径。请连同迁移清单、实际IR和规则命中统计阅读，不能省略这些限制。",
+        ] if run.get("migration") else []),
         "- 对手固定为另一版本，公开协议可见不表示会主动学会适应；不声称博弈均衡或普适最优。",
         "- 双明手墩数近似公开四手的最优打牌，不是实战打牌，也没有在叫牌时泄露给策略。",
         "- 每副先转换IMP再平均；两桌组成一个样本。该区间仅处理牌例抽样不确定性，不处理迁移定义差异。",
-        "- 本次没有对1000副结果选择候选或调参。若继续据此修改体系，必须把这批test标为已消耗。",
+        "- 若据此选择候选或修改体系，本批不再是独立的未见过测试证据；必须在后续报告中标明用途。",
         "", "## 可复核产物", "",
         "- `run.json`：配置、源码哈希、DDS来源、运行状态和产物校验。",
         "- `dataset-boards.jsonl`：完整52张牌、发牌人及局况；`dataset-manifest.json`记录生成方式。",
         "- `boards.jsonl`：两桌真实庄位、定约、DDS墩数、NS分数和逐副IMP。",
         "- `boards.csv`：同一逐副结果的表格版本。",
         "- `auctions.jsonl`：完整公开叫牌、命中规则和实际求值的私有原子特征，仅供牌后研究。",
-        "- `systems/`：实际执行的不可变IR与中文规范。",
+        "- `systems/`：实际执行的不可变IR/外部模型注册描述及对应规范/边界说明；外部权重须按描述中的哈希另行保留。",
         "- `summary.json`：bootstrap设置、定约分布、全部规则命中数。",
         "",
     ]

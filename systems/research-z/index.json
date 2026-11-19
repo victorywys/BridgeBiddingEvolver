@@ -1,6 +1,10 @@
 {
   "schema": "bridge-published-research-archive/v1",
   "scope": "Frozen executable protocols and authored regression inputs only. No model transcripts, private credentials, unfinished drafts or reusable independent fitness evidence.",
+  "source_baselines": [
+    {"hash": "7d742eafde2b64669f73b6359802827222d75b9a8a9db328d182bdc83e6ecbd1", "name": "CCBA engineering v5.5.4"},
+    {"hash": "17941698f210217b1d9ad601791d8dd4fa45b0609d03d36bb5504459615d5ddc", "name": "Precision engineering v5.5.4"}
+  ],
   "snapshots": [
     {
       "hash": "14649d251a62e0a7ce32c7a173cca9c7903d7d8f0b0f3318f903ed3b18a2ec7f",

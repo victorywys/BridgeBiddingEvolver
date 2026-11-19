@@ -431,6 +431,28 @@ class BoardViewerHTTPTests(unittest.TestCase):
                 self.assertEqual(status, 422)
                 self.assertIn("Unknown semantic node", result["error"])
 
+    def test_protocol_review_http_lists_calls_and_keeps_guarantees_separate_from_private_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            run = write_smoke_run(project / "results" / "fixture-smoke-1")
+            with patch.object(self.server, "state", viewer.ViewerState(project)):
+                status, sources = self.request("GET", "/api/protocol-sources")
+                self.assertEqual(status, 200)
+                self.assertIn(run["system_a"]["hash"], [item["hash"] for item in sources["sources"]])
+                payload = {"source": {"kind": "frozen", "hash": run["system_a"]["hash"]},
+                           "side": "NS", "opponent": run["system_b"]["hash"],
+                           "request": {"history": ["1S", "P", "3S", "P"], "call": "4NT"}}
+                status, result = self.request("POST", "/api/protocol-review", json.dumps(payload))
+                self.assertEqual(status, 200, result)
+                self.assertEqual(len(result["choices"]), 38)
+                self.assertEqual(result["selected"]["explanation"]["purpose"], "体系明确标记的人工叫品")
+                self.assertEqual(len(result["selected"]["public_information_after"]), 4)
+                self.assertNotIn("decision", result)
+                payload["request"]["hand"] = BOARD["hands"]["N"]
+                status, error = self.request("POST", "/api/protocol-review", json.dumps(payload))
+                self.assertEqual(status, 422)
+                self.assertIn("hand", error["error"])
+
     def test_cross_origin_requests_and_private_paths_are_rejected(self):
         status, result = self.request("POST", "/api/import?filename=test.json", json.dumps(BOARD), {"Origin": "https://example.invalid"})
         self.assertEqual(status, 403)

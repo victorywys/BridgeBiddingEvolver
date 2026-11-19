@@ -5,7 +5,7 @@ from collections.abc import Callable
 from bridge_evolve.systems.language import (
     Action, Announcement, Expression, Parameter, ProtocolState, Rule, SystemDefinition,
     SystemError, Transition, Value, _check_state_literals, _literal,
-    compile_expression, integer, object_fields, parse_call, text, thaw,
+    compile_expression, integer, object_fields, parse_call, source_at, source_pointer, text, thaw,
 )
 
 FORCING_STATES = ("none", "one_round", "invite_game", "game", "slam_try", "small_slam", "invite_grand", "grand_slam")
@@ -134,29 +134,31 @@ def check_decision(expression: Expression) -> None:
         check_decision(child)
 
 
-def compile_action(value: object, compile_child: Callable[[object], Expression]) -> Action:
+def compile_action(value: object, compile_child: Callable[[object], Expression],
+                   *, pointer: str | None = None) -> Action:
     if not isinstance(value, dict):
-        raise SystemError("v2 actions must be objects.")
-    kind = text(value.get("kind"))
+        raise SystemError("v2 actions must be objects.", pointer=pointer)
+    kind = text(value.get("kind"), pointer=source_pointer(pointer, "kind"))
     if kind == "call":
-        fields = object_fields(value, {"kind", "call"})
-        return Action(kind, call=parse_call(fields["call"]))
+        fields = object_fields(value, {"kind", "call"}, pointer=pointer)
+        return Action(kind, call=parse_call(fields["call"], pointer=source_pointer(pointer, "call")))
     if kind == "error":
-        fields = object_fields(value, {"kind", "message"})
-        return Action(kind, message=text(fields["message"]))
+        fields = object_fields(value, {"kind", "message"}, pointer=pointer)
+        return Action(kind, message=text(fields["message"], pointer=source_pointer(pointer, "message")))
     types = {
         "bid": {"level": "number", "strain": "string"},
         "cheapest": {"strains": "list[string]", "min_level": "number", "max_level": "number"},
         "step": {"after": "string", "count": "number"},
     }.get(kind)
     if types is None:
-        raise SystemError(f"Unknown action kind: {kind}")
-    fields = object_fields(value, {"kind", *types})
+        raise SystemError(f"Unknown action kind: {kind}", pointer=source_pointer(pointer, "kind"))
+    fields = object_fields(value, {"kind", *types}, pointer=pointer)
     expressions = []
     for name, expected in types.items():
-        expression = compile_child(fields[name])
-        if expression.kind != expected:
-            raise SystemError(f"Action {kind}.{name} must have type {expected}.")
+        with source_at(source_pointer(pointer, name)):
+            expression = compile_child(fields[name])
+            if expression.kind != expected:
+                raise SystemError(f"Action {kind}.{name} must have type {expected}.")
         expressions.append((name, expression))
     return Action(kind, expressions=tuple(expressions))
 
@@ -165,43 +167,50 @@ def validate_v2(value: object) -> SystemDefinition:
     fields = object_fields(value, {
         "schema_version", "operator_version", "name", "scope", "features",
         "protocol", "announcements", "rules", "fallback",
-    })
-    if integer(fields["schema_version"]) != 2 or integer(fields["operator_version"]) != 2:
-        raise SystemError("v2 requires schema_version=operator_version=2.")
-    scope = text(fields["scope"])
+    }, pointer="")
+    if (integer(fields["schema_version"], pointer="/schema_version") != 2
+            or integer(fields["operator_version"], pointer="/operator_version") != 2):
+        raise SystemError("v2 requires schema_version=operator_version=2.", pointer="/operator_version")
+    scope = text(fields["scope"], pointer="/scope")
     if scope not in ("general", "uncontested-1nt"):
-        raise SystemError("Unknown system scope.")
-    protocol = object_fields(fields["protocol"], {"initial", "parameters", "states"})
+        raise SystemError("Unknown system scope.", pointer="/scope")
+    protocol = object_fields(fields["protocol"], {"initial", "parameters", "states"}, pointer="/protocol")
     raw_parameters = protocol["parameters"]
     if not isinstance(raw_parameters, dict):
-        raise SystemError("protocol.parameters must be an object.")
+        raise SystemError("protocol.parameters must be an object.", pointer="/protocol/parameters")
     parameters = []
     for name, raw in raw_parameters.items():
-        name = text(name)
-        parameter = object_fields(raw, {"type", "initial"}, {"values"})
-        kind = text(parameter["type"])
-        initial, actual = _literal(parameter["initial"])
+        pointer = source_pointer("/protocol/parameters", name)
+        name = text(name, pointer=pointer)
+        parameter = object_fields(raw, {"type", "initial"}, {"values"}, pointer=pointer)
+        kind = text(parameter["type"], pointer=source_pointer(pointer, "type"))
+        with source_at(source_pointer(pointer, "initial")):
+            initial, actual = _literal(parameter["initial"])
         if kind not in ("string", "number", "bool") or kind != actual:
-            raise SystemError(f"Invalid parameter type/initial value: {name}")
+            raise SystemError(f"Invalid parameter type/initial value: {name}", pointer=pointer)
         domain: tuple[Value, ...] = ()
         if "values" in parameter:
             raw_domain = parameter["values"]
             if not isinstance(raw_domain, list) or not raw_domain:
-                raise SystemError("Parameter values must be a nonempty list.")
-            literals = tuple(_literal(item) for item in raw_domain)
+                raise SystemError("Parameter values must be a nonempty list.", pointer=source_pointer(pointer, "values"))
+            literals = []
+            for index, item in enumerate(raw_domain):
+                with source_at(source_pointer(pointer, "values", index)):
+                    literals.append(_literal(item))
             if any(item_type != kind for _, item_type in literals):
-                raise SystemError(f"Parameter {name} domain has mixed types.")
+                raise SystemError(f"Parameter {name} domain has mixed types.", pointer=source_pointer(pointer, "values"))
             domain = tuple(item for item, _ in literals)
             if initial not in domain:
-                raise SystemError(f"Parameter {name} initial value is outside its domain.")
+                raise SystemError(f"Parameter {name} initial value is outside its domain.",
+                                  pointer=source_pointer(pointer, "initial"))
         if name == "trump":
             if kind != "string" or not domain or not set(domain) <= {"", "C", "D", "H", "S"}:
-                raise SystemError("trump must have a string domain drawn from empty/C/D/H/S.")
+                raise SystemError("trump must have a string domain drawn from empty/C/D/H/S.", pointer=pointer)
         parameters.append(Parameter(name, kind, initial, domain))
     variable_types = {parameter.name: parameter.kind for parameter in parameters}
     features = fields["features"]
     if not isinstance(features, dict) or any(not isinstance(name, str) or not name for name in features):
-        raise SystemError("features must map nonempty names to expressions.")
+        raise SystemError("features must map nonempty names to expressions.", pointer="/features")
     compiled: dict[str, Expression] = {}
     visiting: set[str] = set()
 
@@ -210,7 +219,8 @@ def validate_v2(value: object) -> SystemDefinition:
             raise SystemError(f"Undefined or cyclic feature reference: {name}")
         if name not in compiled:
             visiting.add(name)
-            compiled[name] = compile_child(features[name])
+            with source_at(source_pointer("/features", name)):
+                compiled[name] = compile_child(features[name])
             visiting.remove(name)
         return compiled[name]
 
@@ -221,60 +231,73 @@ def validate_v2(value: object) -> SystemDefinition:
         resolve(name)
     raw_states = protocol["states"]
     if not isinstance(raw_states, dict) or not raw_states:
-        raise SystemError("protocol.states must be a nonempty object.")
+        raise SystemError("protocol.states must be a nonempty object.", pointer="/protocol/states")
     states = []
     transition_ids = set()
     for name, raw in raw_states.items():
-        name = text(name)
-        state = object_fields(raw, {"transitions", "otherwise"})
+        pointer = source_pointer("/protocol/states", name)
+        name = text(name, pointer=pointer)
+        state = object_fields(raw, {"transitions", "otherwise"}, pointer=pointer)
         if not isinstance(state["transitions"], list):
-            raise SystemError("State transitions must be a list.")
+            raise SystemError("State transitions must be a list.", pointer=source_pointer(pointer, "transitions"))
         transitions = []
-        for raw_transition in state["transitions"]:
+        for index, raw_transition in enumerate(state["transitions"]):
+            transition_pointer = source_pointer(pointer, "transitions", index)
             item = object_fields(
                 raw_transition, {"id", "when", "to", "set"}, {"forcing", "allow_pass"},
+                pointer=transition_pointer,
             )
-            identifier = text(item["id"])
+            identifier = text(item["id"], pointer=source_pointer(transition_pointer, "id"))
             if identifier in transition_ids:
-                raise SystemError(f"Duplicate transition id: {identifier}")
+                raise SystemError(f"Duplicate transition id: {identifier}",
+                                  pointer=source_pointer(transition_pointer, "id"))
             transition_ids.add(identifier)
-            condition = compile_child(item["when"])
-            check_public(condition)
-            if condition.kind != "bool":
-                raise SystemError("Public transition condition must be boolean.")
+            with source_at(source_pointer(transition_pointer, "when")):
+                condition = compile_child(item["when"])
+                check_public(condition)
+                if condition.kind != "bool":
+                    raise SystemError("Public transition condition must be boolean.")
             assignments = item["set"]
             if not isinstance(assignments, dict):
-                raise SystemError("Transition set must be an object.")
+                raise SystemError("Transition set must be an object.", pointer=source_pointer(transition_pointer, "set"))
             updates = []
             for target, raw_expression in assignments.items():
-                if target not in variable_types:
-                    raise SystemError(f"Assignment to undefined parameter: {target}")
-                expression = compile_child(raw_expression)
-                check_public(expression)
-                if expression.kind != variable_types[target]:
-                    raise SystemError(f"Assignment type mismatch for {target}")
+                with source_at(source_pointer(transition_pointer, "set", target)):
+                    if target not in variable_types:
+                        raise SystemError(f"Assignment to undefined parameter: {target}")
+                    expression = compile_child(raw_expression)
+                    check_public(expression)
+                    if expression.kind != variable_types[target]:
+                        raise SystemError(f"Assignment type mismatch for {target}")
                 updates.append((target, expression))
             forcing = None
             if "forcing" in item:
-                forcing = text(item["forcing"])
+                forcing = text(item["forcing"], pointer=source_pointer(transition_pointer, "forcing"))
                 if forcing not in FORCING_STATES:
-                    raise SystemError(f"forcing must be one of {FORCING_STATES}.")
+                    raise SystemError(f"forcing must be one of {FORCING_STATES}.",
+                                      pointer=source_pointer(transition_pointer, "forcing"))
             allow_pass = item.get("allow_pass", False)
             if type(allow_pass) is not bool:
-                raise SystemError("allow_pass must be boolean.")
+                raise SystemError("allow_pass must be boolean.", pointer=source_pointer(transition_pointer, "allow_pass"))
             transitions.append(Transition(
-                identifier, condition, text(item["to"]), tuple(updates), forcing, allow_pass,
+                identifier, condition, text(item["to"], pointer=source_pointer(transition_pointer, "to")),
+                tuple(updates), forcing, allow_pass,
             ))
-        states.append(ProtocolState(name, (), text(state["otherwise"]), tuple(transitions)))
+        states.append(ProtocolState(name, (), text(state["otherwise"], pointer=source_pointer(pointer, "otherwise")),
+                                    tuple(transitions)))
     names = {state.name for state in states}
-    initial = text(protocol["initial"])
+    initial = text(protocol["initial"], pointer="/protocol/initial")
     if initial not in names:
-        raise SystemError("Undefined initial state.")
+        raise SystemError("Undefined initial state.", pointer="/protocol/initial")
     reachable = {initial}
     for state in states:
-        targets = {state.otherwise, *(transition.target for transition in state.transitions)}
-        if not targets <= names:
-            raise SystemError(f"Undefined transition from {state.name}")
+        pointer = source_pointer("/protocol/states", state.name)
+        if state.otherwise not in names:
+            raise SystemError(f"Undefined transition from {state.name}", pointer=source_pointer(pointer, "otherwise"))
+        for index, transition in enumerate(state.transitions):
+            if transition.target not in names:
+                raise SystemError(f"Undefined transition from {state.name}",
+                                  pointer=source_pointer(pointer, "transitions", index, "to"))
     while True:
         expanded = reachable | {
             target for state in states if state.name in reachable
@@ -284,73 +307,90 @@ def validate_v2(value: object) -> SystemDefinition:
             break
         reachable = expanded
     if reachable != names:
-        raise SystemError(f"Unreachable states: {sorted(names - reachable)}")
+        raise SystemError(f"Unreachable states: {sorted(names - reachable)}", pointer="/protocol/states")
     declarations = fields["announcements"]
     if not isinstance(declarations, list):
-        raise SystemError("announcements must be a list.")
+        raise SystemError("announcements must be a list.", pointer="/announcements")
     announcements = []
     announcement_ids = set()
-    for raw in declarations:
-        item = object_fields(raw, {"id", "when", "tags"}, {"suit"})
-        identifier = text(item["id"])
+    for index, raw in enumerate(declarations):
+        pointer = source_pointer("/announcements", index)
+        item = object_fields(raw, {"id", "when", "tags"}, {"suit"}, pointer=pointer)
+        identifier = text(item["id"], pointer=source_pointer(pointer, "id"))
         if identifier in announcement_ids:
-            raise SystemError(f"Duplicate announcement id: {identifier}")
+            raise SystemError(f"Duplicate announcement id: {identifier}", pointer=source_pointer(pointer, "id"))
         announcement_ids.add(identifier)
-        condition = compile_child(item["when"])
-        check_public(condition, announcement=True)
+        with source_at(source_pointer(pointer, "when")):
+            condition = compile_child(item["when"])
+            check_public(condition, announcement=True)
         if condition.kind != "bool" or not isinstance(item["tags"], list):
-            raise SystemError("Announcement requires a boolean condition and a tag list.")
-        tags = tuple(text(tag) for tag in item["tags"])
+            raise SystemError("Announcement requires a boolean condition and a tag list.",
+                              pointer=source_pointer(pointer, "when" if condition.kind != "bool" else "tags"))
+        tags = tuple(text(tag, pointer=source_pointer(pointer, "tags", position))
+                     for position, tag in enumerate(item["tags"]))
         if len(set(tags)) != len(tags):
-            raise SystemError("Duplicate announcement tags.")
-        suit = compile_child(item["suit"]) if "suit" in item else None
-        if suit is not None:
-            check_public(suit, announcement=True)
-            if suit.kind != "string":
-                raise SystemError("Announced suit must be a string.")
+            raise SystemError("Duplicate announcement tags.", pointer=source_pointer(pointer, "tags"))
+        suit = None
+        if "suit" in item:
+            with source_at(source_pointer(pointer, "suit")):
+                suit = compile_child(item["suit"])
+                check_public(suit, announcement=True)
+                if suit.kind != "string":
+                    raise SystemError("Announced suit must be a string.")
         announcements.append(Announcement(identifier, condition, tags, suit))
     raw_rules = fields["rules"]
     if not isinstance(raw_rules, list):
-        raise SystemError("rules must be a list.")
+        raise SystemError("rules must be a list.", pointer="/rules")
     rules = []
     ids = set()
     seen = set()
-    for raw in raw_rules:
-        item = object_fields(raw, {"id", "priority", "when", "action"})
-        identifier = text(item["id"])
+    for index, raw in enumerate(raw_rules):
+        pointer = source_pointer("/rules", index)
+        item = object_fields(raw, {"id", "priority", "when", "action"}, pointer=pointer)
+        identifier = text(item["id"], pointer=source_pointer(pointer, "id"))
         if identifier == "fallback" or identifier in ids:
-            raise SystemError(f"Duplicate or reserved rule id: {identifier}")
+            raise SystemError(f"Duplicate or reserved rule id: {identifier}", pointer=source_pointer(pointer, "id"))
         ids.add(identifier)
-        condition = compile_child(item["when"])
-        check_decision(condition)
-        priority = integer(item["priority"])
-        if condition.kind != "bool":
-            raise SystemError("Rule condition must be boolean.")
+        with source_at(source_pointer(pointer, "when")):
+            condition = compile_child(item["when"])
+            check_decision(condition)
+            if condition.kind != "bool":
+                raise SystemError("Rule condition must be boolean.")
+        priority = integer(item["priority"], pointer=source_pointer(pointer, "priority"))
         if (priority, condition) in seen:
-            raise SystemError(f"Identical conditions at the same priority: {identifier}")
+            raise SystemError(f"Identical conditions at the same priority: {identifier}",
+                              pointer=source_pointer(pointer, "when"))
         seen.add((priority, condition))
-        action = compile_action(item["action"], compile_child)
-        for _, expression in action.expressions:
-            check_decision(expression)
+        action = compile_action(item["action"], compile_child, pointer=source_pointer(pointer, "action"))
+        for name, expression in action.expressions:
+            with source_at(source_pointer(pointer, "action", name)):
+                check_decision(expression)
         rules.append(Rule(identifier, priority, condition, action))
-    fallback = compile_action(fields["fallback"], compile_child)
-    for _, expression in fallback.expressions:
-        check_decision(expression)
-    expressions = list(compiled.values()) + [rule.when for rule in rules]
+    fallback = compile_action(fields["fallback"], compile_child, pointer="/fallback")
+    for name, expression in fallback.expressions:
+        with source_at(source_pointer("/fallback", name)):
+            check_decision(expression)
+    expressions = [(expression, source_pointer("/features", name)) for name, expression in compiled.items()]
+    expressions.extend((rule.when, source_pointer("/rules", index, "when")) for index, rule in enumerate(rules))
     for state in states:
-        for transition in state.transitions:
-            expressions.extend([transition.when, *(value for _, value in transition.assignments)])
-    for announcement in announcements:
-        expressions.append(announcement.when)
+        for index, transition in enumerate(state.transitions):
+            pointer = source_pointer("/protocol/states", state.name, "transitions", index)
+            expressions.append((transition.when, source_pointer(pointer, "when")))
+            expressions.extend((value, source_pointer(pointer, "set", name)) for name, value in transition.assignments)
+    for index, announcement in enumerate(announcements):
+        expressions.append((announcement.when, source_pointer("/announcements", index, "when")))
         if announcement.suit is not None:
-            expressions.append(announcement.suit)
-    for rule_action in [fallback, *(rule.call for rule in rules)]:
+            expressions.append((announcement.suit, source_pointer("/announcements", index, "suit")))
+    actions = [(fallback, "/fallback")] + [(rule.call, source_pointer("/rules", index, "action"))
+                                         for index, rule in enumerate(rules)]
+    for rule_action, pointer in actions:
         if isinstance(rule_action, Action):
-            expressions.extend(expression for _, expression in rule_action.expressions)
-    for expression in expressions:
-        _check_state_literals(expression, names)
+            expressions.extend((expression, source_pointer(pointer, name)) for name, expression in rule_action.expressions)
+    for expression, pointer in expressions:
+        with source_at(pointer):
+            _check_state_literals(expression, names)
     return SystemDefinition(
-        text(fields["name"]), scope, tuple((name, resolve(name)) for name in features),
+        text(fields["name"], pointer="/name"), scope, tuple((name, resolve(name)) for name in features),
         initial, tuple(states), tuple(rules), fallback, 2, tuple(parameters), tuple(announcements),
     )
 

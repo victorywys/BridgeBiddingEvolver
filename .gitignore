@@ -4,7 +4,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-node_modules/
+node_modules
 .runtime/
 .dev-tmp/
 
@@ -15,6 +15,7 @@ node_modules/
 !/systems/classics-*-compact/
 /systems/classics-*-compact/*.md
 /tools/board-viewer/app.mjs
+/tools/board-viewer/protocol-review.mjs
 
 # Local credentials, solver binaries, logs and editor state.
 .env
